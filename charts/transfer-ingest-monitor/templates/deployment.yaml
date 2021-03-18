@@ -1,0 +1,24 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: transfer-ingest-monitor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: transfer-ingest-monitor
+  template:
+    metadata:
+      labels:
+        app: transfer-ingest-monitor
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+      - name: transfer-ingest-monitor
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        imagePullPolicy: Always
+        command:
+        - /bin/bash
+        - -c
+        - sleep 1000d
