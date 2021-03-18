@@ -13,7 +13,12 @@ spec:
       labels:
         app: transfer-ingest-monitor
     spec:
-      terminationGracePeriodSeconds: 30
+      # terminationGracePeriodSeconds: 30
+      volumes:
+      - name: pgpass
+        secret:
+          secretName: pgpass
+          defaultMode: 0400
       containers:
       - name: transfer-ingest-monitor
         image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
@@ -22,3 +27,7 @@ spec:
         - /bin/bash
         - -c
         - sleep 1000d
+        volumeMounts:
+        - name: pgpass
+          mountPath: "/root/.pgpass"
+          subPath: ".pgpass"

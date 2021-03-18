@@ -1,2 +1,1 @@
-FROM python:3-buster
-
+FROM postgres:13
