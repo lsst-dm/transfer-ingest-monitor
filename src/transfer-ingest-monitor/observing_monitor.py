@@ -249,7 +249,47 @@ class db_filler:
 
     def count_files_gen3(self):   
         table=findtable(self.input_dir) 
-        query="set TIMEZONE='UTC'; with ne as (select id, relpath||'/'||filename as path, status, added_on, start_time, err_message from "+table+"files, "+table+"gen3_file_events where files_id = id and added_on > '"+self.nite+" 00:00:00+00'),  max as (select id as mid, max(start_time) as mtime from ne group by id) select id, path, status, CAST(CAST(added_on as timestamp) as varchar(25))  as ttime, CAST(CAST(start_time as timestamp) as varchar(25))  as itime, err_message from ne, max where id = mid and mtime = start_time"
+        query=f'''
+        set TIMEZONE='UTC'; 
+        WITH 
+            ne AS (
+                SELECT 
+                    id, 
+                    relpath||'/'||filename as path, 
+                    status, 
+                    added_on, 
+                    start_time, 
+                    err_message 
+                FROM 
+                    {table}files, 
+                    {table}gen3_file_events 
+                WHERE 
+                    files_id = id 
+                    AND 
+                    added_on > '{self.nite} 00:00:00+00'
+            ),  
+            max AS (
+                SELECT 
+                    id as mid, 
+                    max(start_time) as mtime 
+                FROM ne 
+                GROUP BY id
+            ) 
+        SELECT 
+            id, 
+            path, 
+            status, 
+            CAST(CAST(added_on as timestamp) as varchar(25)) as ttime, 
+            CAST(CAST(start_time as timestamp) as varchar(25)) as itime, 
+            err_message 
+        FROM 
+            ne, 
+            max 
+        WHERE 
+            id = mid 
+            AND 
+            mtime = start_time
+        '''
         engine = sqlalchemy.create_engine('postgresql://svclsstdbdbbbm@lsst-pg-prod1.ncsa.illinois.edu:5432/lsstdb1')
         df=pd.read_sql(query, engine)
         self.paths=np.array(df['path'])
