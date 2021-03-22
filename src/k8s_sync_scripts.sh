@@ -8,7 +8,7 @@ cd "${scriptDir}" || exit 1
 
 NAMESPACE="$1"
 if [[ "X${NAMESPACE}" == "X" ]]; then
-  NAMESPACE="transfer-ingest-monitor"
+  NAMESPACE="lsst-dm"
 fi
 
 DEPLOYMENT_NAME="transfer-ingest-monitor"
@@ -21,11 +21,13 @@ echo "Updating source code in ${POD_ID}..."
 TIMESTAMP="$(date | shasum | cut -f1 -d ' ')"
 echo "${TIMESTAMP}" > "${SOURCE_DIR}/.codesync"
 STRIP_NUM="$(echo "${SOURCE_DIR}" | tr '/' ' ' | wc -w)"
+# kubectl exec -i -n "${NAMESPACE}" --container="${DEPLOYMENT_NAME}" "${POD_ID}" -- id
+# kubectl exec -i -n "${NAMESPACE}" --container="${DEPLOYMENT_NAME}" "${POD_ID}" -- ls -l "${TARGET_DIR}"
 tar cf - "${SOURCE_DIR}" | \
-    kubectl exec -i -n "${NAMESPACE}" "${POD_ID}" -- \
-    tar xf - --strip-components="${STRIP_NUM}" -C "${TARGET_DIR}"
+    kubectl exec -i -n "${NAMESPACE}" --container="${DEPLOYMENT_NAME}" "${POD_ID}" -- \
+    tar --overwrite -xf - --strip-components="${STRIP_NUM}" -C "${TARGET_DIR}"
 
-LASTSYNC="$(kubectl exec -it -n "${NAMESPACE}" "${POD_ID}" -- cat "${TARGET_DIR}/.codesync" | tr -d '\n' | tr -d '\r')"
+LASTSYNC="$(kubectl exec -it -n "${NAMESPACE}" --container="${DEPLOYMENT_NAME}" "${POD_ID}" -- cat "${TARGET_DIR}/.codesync" | tr -d '\n' | tr -d '\r')"
 # LASTSYNC="$(echo "${LASTSYNC}" | tr -d '\n' | tr -d '\r')"
 if [[ "${LASTSYNC}" == "${TIMESTAMP}" ]]; then
   echo "Sync successful."

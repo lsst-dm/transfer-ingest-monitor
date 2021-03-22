@@ -2,7 +2,7 @@
 #source /software/lsstsw/stack3/loadLSST.bash
 #Setting number of days that will be probed. We default to 2 to cover overnight transfer
 
-OUTDIR=~/public_html
+OUTDIR=~/public_html/transfer-ingest-monitor
 #OUTDIR=/lsstdata/offline/web_data/processing_monitor
 #OUTDIR=/lsstdata/user/staff/web_data/processing_monitor/
 
@@ -21,7 +21,7 @@ OUTDIR=~/public_html
 
 INPUT=/lsstdata/offline/teststand/auxTel/L1Archiver
 OUTPUT=$OUTDIR/auxTel
-OPTIONS="--first_day=202102015 --gen 3"
+OPTIONS="--first_day=20210301 --gen 3"
 
 set -x
 python3 observing_monitor.py --input_dir $INPUT --output $OUTPUT $OPTIONS
