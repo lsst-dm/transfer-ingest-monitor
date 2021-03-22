@@ -2,3 +2,6 @@ configargparse
 sqlalchemy
 psycopg2-binary
 pandas
+lsst-efd-client
+astropy
+requests

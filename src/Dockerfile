@@ -3,7 +3,7 @@ RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
         python3-pip \
     && rm -rf /var/lib/apt/lists/*
-ARG UID=1001
+ARG UID=1000
 RUN echo "Building image with \"worker\" user ID: ${UID}"
 RUN useradd --create-home --shell /bin/bash worker --uid ${UID}
 USER worker
