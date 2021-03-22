@@ -1,67 +1,72 @@
----
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: transfer-ingest-monitor-nfs-data-pv
-  labels:
-    app: transfer-ingest-monitor
-    name: transfer-ingest-monitor-nfs-data
-spec:
-  capacity:
-    storage: 1Gi
-  accessModes:
-    - ReadOnlyMany
-  nfs:
-    server: lsst-nfs.ncsa.illinois.edu
-    path: /offline/teststand
-    readOnly: true
+# ---
+# apiVersion: v1
+# kind: PersistentVolume
+# metadata:
+#   name: transfer-ingest-monitor-nfs-data-pv
+#   labels:
+#     app: transfer-ingest-monitor
+#     name: transfer-ingest-monitor-nfs-data
+# spec:
+#   capacity:
+#     storage: 1Gi
+#   accessModes:
+#     - ReadOnlyMany
+#   nfs:
+#     server: lsst-nfs.ncsa.illinois.edu
+#     path: /offline/teststand
+#     readOnly: true
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: nfs-data-pvc
-  labels:
-    app: transfer-ingest-monitor
+  # labels:
+  #   app: transfer-ingest-monitor
+  # finalizers:
+  # - kubernetes.io/pvc-protection
 spec:
   resources:
     requests:
       storage: 1Gi
   accessModes:
   - ReadOnlyMany
-  storageClassName: ""
+  storageClassName: local-path
+  volumeMode: Filesystem
+  volumeName: transfer-ingest-monitor-nfs-data-pv
   selector:
     matchLabels:
       name: transfer-ingest-monitor-nfs-data
----
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: transfer-ingest-monitor-nfs-scratch-pv
-  labels:
-    app: transfer-ingest-monitor
-    name: transfer-ingest-monitor-nfs-scratch
-spec:
-  capacity:
-    storage: 1Gi
-  accessModes:
-    - ReadWriteMany
-  nfs:
-    server: lsst-l1-cl-arctl.ncsa.illinois.edu
-    path: /scratch/transfer-ingest-monitor
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: nfs-scratch-pvc
-  labels:
-    app: transfer-ingest-monitor
-spec:
-  resources:
-    requests:
-      storage: 1Gi
-  accessModes:
-  - ReadWriteMany
-  storageClassName: ""
-  selector:
-    matchLabels:
-      name: transfer-ingest-monitor-nfs-scratch
+# ---
+# apiVersion: v1
+# kind: PersistentVolume
+# metadata:
+#   name: transfer-ingest-monitor-nfs-scratch-pv
+#   labels:
+#     app: transfer-ingest-monitor
+#     name: transfer-ingest-monitor-nfs-scratch
+# spec:
+#   capacity:
+#     storage: 1Gi
+#   accessModes:
+#     - ReadWriteMany
+#   nfs:
+#     server: lsst-l1-cl-arctl.ncsa.illinois.edu
+#     path: /scratch/transfer-ingest-monitor
+# ---
+# apiVersion: v1
+# kind: PersistentVolumeClaim
+# metadata:
+#   name: nfs-scratch-pvc
+#   labels:
+#     app: transfer-ingest-monitor
+# spec:
+#   resources:
+#     requests:
+#       storage: 1Gi
+#   accessModes:
+#   - ReadWriteMany
+#   # storageClassName: "local"
+#   # volumeName: "transfer-ingest-monitor-nfs-scratch-pv"
+#   selector:
+#     matchLabels:
+#       name: transfer-ingest-monitor-nfs-scratch

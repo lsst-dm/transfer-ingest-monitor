@@ -21,8 +21,9 @@ spec:
       - name: pgpass-secrets-dir
         emptyDir: {}
       - name: webfiles
-        persistentVolumeClaim:
-          claimName: nfs-scratch-pvc
+        emptyDir: {}
+        # persistentVolumeClaim:
+        #   claimName: nfs-scratch-pvc
       - name: data
         persistentVolumeClaim:
           claimName: nfs-data-pvc
@@ -44,6 +45,16 @@ spec:
         - name: pgpass-secrets-dir
           mountPath: "/var/run/secrets/pgpass"
       containers:
+      # NGINX Webserver
+      - name: transfer-ingest-monitor-nginx
+        image: nginx:1.19
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: webfiles
+          mountPath: /usr/share/nginx/html
+          subPath: webfiles
+          readOnly: true
+      # Transfer and Ingest Monitor
       - name: transfer-ingest-monitor
         image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
         imagePullPolicy: Always
@@ -71,31 +82,31 @@ spec:
                   rm /var/run/secrets/pgpass/.pgpass && \
                   chown worker:worker /home/worker/.pgpass && \
                   chmod go-rwx /home/worker/.pgpass
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: transfer-ingest-monitor-nginx
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: transfer-ingest-monitor-nginx
-  template:
-    metadata:
-      labels:
-        app: transfer-ingest-monitor-nginx
-    spec:
-      volumes:
-      - name: webfiles
-        persistentVolumeClaim:
-          claimName: nfs-scratch-pvc
-      containers:
-      - name: transfer-ingest-monitor-nginx
-        image: nginx:1.19
-        imagePullPolicy: IfNotPresent
-        volumeMounts:
-        - name: webfiles
-          mountPath: /usr/share/nginx/html
-          subPath: webfiles
-          readOnly: true
+# ---
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: transfer-ingest-monitor-nginx
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: transfer-ingest-monitor-nginx
+#   template:
+#     metadata:
+#       labels:
+#         app: transfer-ingest-monitor-nginx
+#     spec:
+#       volumes:
+#       - name: webfiles
+#         persistentVolumeClaim:
+#           claimName: nfs-scratch-pvc
+#       containers:
+#       - name: transfer-ingest-monitor-nginx
+#         image: nginx:1.19
+#         imagePullPolicy: IfNotPresent
+#         volumeMounts:
+#         - name: webfiles
+#           mountPath: /usr/share/nginx/html
+#           subPath: webfiles
+#           readOnly: true
