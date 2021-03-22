@@ -21,9 +21,9 @@ spec:
       - name: pgpass-secrets-dir
         emptyDir: {}
       - name: webfiles
-        emptyDir: {}
-        # persistentVolumeClaim:
-        #   claimName: nfs-scratch-pvc
+        # emptyDir: {}
+        persistentVolumeClaim:
+          claimName: nfs-scratch-pvc
       - name: data
         persistentVolumeClaim:
           claimName: nfs-data-pvc
@@ -37,13 +37,16 @@ spec:
         command:
         - /bin/bash
         - -c
-        - cp /root/.pgpass /var/run/secrets/pgpass/.pgpass && chmod a+rw /var/run/secrets/pgpass/.pgpass
+        - cp /root/.pgpass /var/run/secrets/pgpass/.pgpass && chmod a+rw /var/run/secrets/pgpass/.pgpass && chown -R worker:worker /home/worker/public_html
         volumeMounts:
         - name: pgpass
           mountPath: "/root/.pgpass"
           subPath: ".pgpass"
         - name: pgpass-secrets-dir
           mountPath: "/var/run/secrets/pgpass"
+        - name: webfiles
+          mountPath: /home/worker/public_html
+          subPath: webfiles
       containers:
       # NGINX Webserver
       - name: transfer-ingest-monitor-nginx

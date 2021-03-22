@@ -1,0 +1,28 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nfs-data-pvc
+spec:
+  resources:
+    requests:
+      storage: 1Gi
+  accessModes:
+  - ReadOnlyMany
+  storageClassName: local-path
+  volumeName: transfer-ingest-monitor-nfs-data-pv
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nfs-scratch-pvc
+  labels:
+    app: transfer-ingest-monitor
+spec:
+  resources:
+    requests:
+      storage: 1Gi
+  accessModes:
+  - ReadWriteMany
+  storageClassName: local-path
+  volumeName: transfer-ingest-monitor-nfs-scratch-pv
