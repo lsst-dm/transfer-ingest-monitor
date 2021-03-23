@@ -13,7 +13,6 @@ spec:
       labels:
         app: transfer-ingest-monitor
     spec:
-      # terminationGracePeriodSeconds: 30
       volumes:
       - name: pgpass
         secret:
@@ -21,7 +20,6 @@ spec:
       - name: pgpass-secrets-dir
         emptyDir: {}
       - name: webfiles
-        # emptyDir: {}
         persistentVolumeClaim:
           claimName: nfs-scratch-pvc
       - name: data
@@ -85,31 +83,56 @@ spec:
                   rm /var/run/secrets/pgpass/.pgpass && \
                   chown worker:worker /home/worker/.pgpass && \
                   chmod go-rwx /home/worker/.pgpass
-# ---
-# apiVersion: apps/v1
-# kind: Deployment
-# metadata:
-#   name: transfer-ingest-monitor-nginx
-# spec:
-#   replicas: 1
-#   selector:
-#     matchLabels:
-#       app: transfer-ingest-monitor-nginx
-#   template:
-#     metadata:
-#       labels:
-#         app: transfer-ingest-monitor-nginx
-#     spec:
-#       volumes:
-#       - name: webfiles
-#         persistentVolumeClaim:
-#           claimName: nfs-scratch-pvc
-#       containers:
-#       - name: transfer-ingest-monitor-nginx
-#         image: nginx:1.19
-#         imagePullPolicy: IfNotPresent
-#         volumeMounts:
-#         - name: webfiles
-#           mountPath: /usr/share/nginx/html
-#           subPath: webfiles
-#           readOnly: true
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: transfer-ingest-monitor-syncthing
+spec:
+  selector:
+    matchLabels:
+      app: transfer-ingest-monitor-syncthing
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: transfer-ingest-monitor-syncthing
+    spec:
+      initContainers:
+      - name: syncthing-init
+        securityContext:
+          runAsUser: 0
+          runAsGroup: 0
+        image: lsstdm/transfer-ingest-monitor-syncthing:latest
+        imagePullPolicy: IfNotPresent
+        command: 
+        - '/bin/bash' 
+        - '-c'
+        - 'chown -R syncthing /srv/config'
+        volumeMounts:
+        - name: scratch
+          mountPath: /srv/config
+          subPath: syncthing
+      containers:
+      - image: lsstdm/transfer-ingest-monitor-syncthing:latest
+        name: syncthing
+        imagePullPolicy: Always
+        securityContext:
+          runAsUser: 1000
+          runAsGroup: 1000
+        command:
+        - '/bin/bash'
+        - '-c'
+        - '/srv/syncthing/syncthing -home=/srv/config'
+        volumeMounts:
+        - name: scratch
+          mountPath: /srv/data
+          subPath: webfiles
+          readOnly: true
+        - name: scratch
+          mountPath: /srv/config
+          subPath: syncthing
+      volumes:
+      - name: scratch
+        persistentVolumeClaim:
+          claimName: nfs-scratch-pvc

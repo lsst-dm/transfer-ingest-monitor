@@ -12,7 +12,7 @@ if [[ "X${NAMESPACE}" == "X" ]]; then
 fi
 
 DEPLOYMENT_NAME="transfer-ingest-monitor"
-SOURCE_DIR="transfer-ingest-monitor"
+SOURCE_DIR="src"
 TARGET_DIR="/home/worker/transfer-ingest-monitor"
 
 POD_ID="$(kubectl get pod -n "${NAMESPACE}" --selector=app="${DEPLOYMENT_NAME}" -o jsonpath='{.items[0].metadata.name}')"
