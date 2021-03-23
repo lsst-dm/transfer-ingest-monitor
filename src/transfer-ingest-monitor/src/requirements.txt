@@ -5,3 +5,4 @@ pandas
 lsst-efd-client
 astropy
 requests
+psutil

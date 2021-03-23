@@ -1,0 +1,74 @@
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: transfer-ingest-monitor-cron
+spec:
+  schedule: "*/5 * * * *"
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        spec:
+          restartPolicy: Never
+          volumes:
+          - name: pgpass
+            secret:
+              secretName: pgpass
+          - name: pgpass-secrets-dir
+            emptyDir: {}
+          - name: webfiles
+            persistentVolumeClaim:
+              claimName: nfs-scratch-pvc
+          - name: data
+            persistentVolumeClaim:
+              claimName: nfs-data-pvc
+          initContainers:
+          - name: init
+            image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+            imagePullPolicy: Always
+            securityContext:
+              runAsUser: 0
+              runAsGroup: 0
+            command:
+            - /bin/bash
+            - -c
+            - cp /root/.pgpass /var/run/secrets/pgpass/.pgpass && chmod a+rw /var/run/secrets/pgpass/.pgpass && chown -R worker:worker /home/worker/public_html
+            volumeMounts:
+            - name: pgpass
+              mountPath: "/root/.pgpass"
+              subPath: ".pgpass"
+            - name: pgpass-secrets-dir
+              mountPath: "/var/run/secrets/pgpass"
+            - name: webfiles
+              mountPath: /home/worker/public_html
+              subPath: webfiles
+          containers:
+          # Transfer and Ingest Monitor
+          - name: transfer-ingest-monitor
+            image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+            imagePullPolicy: Always
+            command:
+            - /bin/bash
+            - -c
+            - bash cron_observing_monitor.sh
+            volumeMounts:
+            - name: pgpass-secrets-dir
+              mountPath: "/var/run/secrets/pgpass"
+            - name: data
+              mountPath: /lsstdata/offline/teststand
+              readOnly: true
+            - name: webfiles
+              mountPath: /home/worker/public_html
+              subPath: webfiles
+            lifecycle:
+              postStart:
+                exec:
+                  command:
+                    - /bin/bash
+                    - -c
+                    - |
+                      cp /var/run/secrets/pgpass/.pgpass /home/worker/.pgpass && \
+                      rm /var/run/secrets/pgpass/.pgpass && \
+                      chown worker:worker /home/worker/.pgpass && \
+                      chmod go-rwx /home/worker/.pgpass
