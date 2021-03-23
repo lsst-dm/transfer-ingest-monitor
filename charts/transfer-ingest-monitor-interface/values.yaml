@@ -1,0 +1,3 @@
+hostname: lsst-sandbox.ncsa.illinois.edu
+# Include leading forward slash in basePath
+basePath: /transfer-ingest-monitor

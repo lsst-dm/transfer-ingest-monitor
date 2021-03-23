@@ -1,0 +1,3 @@
+apiVersion: v2
+name: transfer-ingest-monitor-interface
+version: 1.0.0

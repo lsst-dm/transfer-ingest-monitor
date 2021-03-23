@@ -1,0 +1,15 @@
+---
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: transfer-ingest-monitor-interface
+spec:
+  rules:
+  - host: {{ .Values.hostname }}
+    http:
+      paths:
+      - path: {{ .Values.basePath }}
+        pathType: Prefix
+        backend:
+          serviceName: transfer-ingest-monitor-interface
+          servicePort: 80

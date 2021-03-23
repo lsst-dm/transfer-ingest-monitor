@@ -1,0 +1,61 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: transfer-ingest-monitor-interface
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: transfer-ingest-monitor-interface
+  template:
+    metadata:
+      labels:
+        app: transfer-ingest-monitor-interface
+    spec:
+      volumes:
+      - name: webfiles
+        emptyDir: {}
+      - name: config
+        emptyDir: {}
+      initContainers:
+      - name: syncthing-init
+        securityContext:
+          runAsUser: 0
+          runAsGroup: 0
+        image: lsstdm/transfer-ingest-monitor-syncthing:latest
+        imagePullPolicy: IfNotPresent
+        command: 
+        - '/bin/bash' 
+        - '-c'
+        - 'chown -R syncthing /srv/config'
+        volumeMounts:
+        - name: config
+          mountPath: /srv/config
+      containers:
+      # NGINX Webserver
+      - name: nginx
+        image: nginx:1.19
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: webfiles
+          mountPath: /usr/share/nginx/html
+          subPath: webfiles
+          readOnly: true
+      # Syncthing
+      - name: syncthing
+        image: lsstdm/transfer-ingest-monitor-syncthing:latest
+        imagePullPolicy: Always
+        securityContext:
+          runAsUser: 1000
+          runAsGroup: 1000
+        command:
+        - '/bin/bash'
+        - '-c'
+        - '/srv/syncthing/syncthing -home=/srv/config'
+        volumeMounts:
+        - name: config
+          mountPath: /srv/config
+        - name: webfiles
+          mountPath: /srv/data
+          subPath: webfiles
