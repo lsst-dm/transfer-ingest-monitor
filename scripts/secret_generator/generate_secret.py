@@ -31,7 +31,7 @@ def main():
     secret_files = []
     for file in args.files:
         if os.path.isfile(file):
-            print(f'Adding file "{file}"...')
+            # print(f'Adding file "{file}"...')
             try:
                 with open(file, 'r') as secret_file:
                     data = secret_file.read()
@@ -45,7 +45,7 @@ def main():
                 print(f'Error converting file "{file}": {str(e)}')
         else:
             print(f'File "{file}" does not exist. Skipping...')
-    print('Generating secret...')
+    # print('Generating secret...')
     secret_yaml = render_template(args.name, secret_files)
     # print(f'{yaml.dump(secret_yaml, indent=2)}')
     
