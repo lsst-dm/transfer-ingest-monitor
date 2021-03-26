@@ -8,7 +8,7 @@ import os
 from webpage import db_to_html
 from jinja2 import Template
 import logging
-from styles import css
+from styles import html_head
 
 # Configure logging
 log = logging.getLogger(__name__)
@@ -59,7 +59,7 @@ try:
         templateText = f.read()
     template = Template(templateText)
     html = template.render(
-        css=css,
+        html_head=html_head,
         nowstr=nowstr,
         streams=streams,
     )

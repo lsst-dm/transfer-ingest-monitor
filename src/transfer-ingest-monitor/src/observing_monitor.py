@@ -15,7 +15,7 @@ import traceback
 import psycopg2
 from webpage import db_to_html
 from jinja2 import Template
-from styles import css
+from styles import html_head
 import logging
 
 # Configure logging
@@ -551,7 +551,7 @@ class db_filler:
                 templateText = f.read()
             template = Template(templateText)
             html = template.render(
-                css=css,
+                html_head=html_head,
                 name=self.name,
                 nowstr=self.nowstr,
                 nite=self.nite,
@@ -580,7 +580,7 @@ class db_filler:
                 templateText = f.read()
             template = Template(templateText)
             html = template.render(
-                css=css,
+                html_head=html_head,
                 name=self.name,
                 nowstr=self.nowstr,
                 data=db_to_html(self.db, f'select * from {file_count_table} ORDER by Nite_Obs DESC',linkify=True),

@@ -1,19 +1,19 @@
 <html>
 
-<head>
-    <style>
-        {{ css }}
-    </style>
-</head>
+{{ html_head }}
 
 <body>
-    <p>Last updated: {{ nowstr }}</p>
-    <h1>NCSA/LSST Transfer/Ingestion Summary Page</h1>
+    <div class="container">
+        <div class="row">
+            <p>Last updated: <code>{{ nowstr }}</code></p>
+            <h1>NCSA/LSST Transfer/Ingestion Summary Page</h1>
 
-    {% for stream in streams -%}
-    <h2><a href="{{ stream.link }}">{{ stream.name }}</a></h2>
-    {{ stream.data_table }}
-    {%- endfor -%}
+            {% for stream in streams -%}
+            <h2><a href="{{ stream.link }}">{{ stream.name }}</a></h2>
+            {{ stream.data_table }}
+            {%- endfor -%}
+        </div>
+    </div>
 </body>
 
 </html>
