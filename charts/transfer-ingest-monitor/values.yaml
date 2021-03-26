@@ -4,5 +4,6 @@ basePath: /transfer-ingest-monitor
 image:
   repository: lsstdm/transfer-ingest-monitor
   tag: latest
+monitorNumDays: 10
 # If dev mode is enabled, a static TIM deployment is included for remote debugging and code development
 devMode: false

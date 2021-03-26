@@ -61,6 +61,9 @@ spec:
         - /bin/bash
         - -c
         - sleep 1000d
+        env:
+        - name: "MONITOR_NUM_DAYS"
+          value: "{{ .Values.monitorNumDays }}"
         volumeMounts:
         - name: pgpass-secrets-dir
           mountPath: "/var/run/secrets/pgpass"

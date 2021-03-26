@@ -58,6 +58,9 @@ spec:
             - /bin/bash
             - -c
             - bash cron_observing_monitor.sh
+            env:
+            - name: "MONITOR_NUM_DAYS"
+              value: "{{ .Values.monitorNumDays }}"
             volumeMounts:
             - name: pgpass-secrets-dir
               mountPath: "/var/run/secrets/pgpass"
