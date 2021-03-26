@@ -1,0 +1,87 @@
+{{ if .Values.devMode }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: transfer-ingest-monitor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: transfer-ingest-monitor
+  template:
+    metadata:
+      labels:
+        app: transfer-ingest-monitor
+    spec:
+      volumes:
+      - name: pgpass
+        secret:
+          secretName: pgpass
+      - name: pgpass-secrets-dir
+        emptyDir: {}
+      - name: webfiles
+        persistentVolumeClaim:
+          claimName: nfs-scratch-pvc
+      - name: data
+        persistentVolumeClaim:
+          claimName: nfs-data-pvc
+      - name: data-nts
+        persistentVolumeClaim:
+          claimName: nfs-data-nts-pvc
+      initContainers:
+      - name: init
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        imagePullPolicy: Always
+        securityContext:
+          runAsUser: 0
+          runAsGroup: 0
+        command:
+        - /bin/bash
+        - -c
+        - cp /root/.pgpass /var/run/secrets/pgpass/.pgpass && chmod a+rw /var/run/secrets/pgpass/.pgpass && chown -R worker:worker /home/worker/public_html
+        volumeMounts:
+        - name: pgpass
+          mountPath: "/root/.pgpass"
+          subPath: ".pgpass"
+        - name: pgpass-secrets-dir
+          mountPath: "/var/run/secrets/pgpass"
+        - name: webfiles
+          mountPath: /home/worker/public_html
+          subPath: webfiles
+      containers:
+      # Transfer and Ingest Monitor
+      - name: transfer-ingest-monitor
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        imagePullPolicy: Always
+        securityContext:
+          runAsUser: 1000
+          runAsGroup: 1000
+        command:
+        - /bin/bash
+        - -c
+        - sleep 1000d
+        volumeMounts:
+        - name: pgpass-secrets-dir
+          mountPath: "/var/run/secrets/pgpass"
+        - name: data
+          mountPath: /lsstdata/offline/instrument
+          readOnly: true
+        - name: data-nts
+          mountPath: /lsstdata/offline/teststand
+          readOnly: true
+        - name: webfiles
+          mountPath: /home/worker/public_html
+          subPath: webfiles
+        lifecycle:
+          postStart:
+            exec:
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  cp /var/run/secrets/pgpass/.pgpass /home/worker/.pgpass && \
+                  rm /var/run/secrets/pgpass/.pgpass && \
+                  chown worker:worker /home/worker/.pgpass && \
+                  chmod go-rwx /home/worker/.pgpass
+{{ end }}
