@@ -48,6 +48,9 @@ spec:
           - name: transfer-ingest-monitor
             image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
             imagePullPolicy: Always
+            securityContext:
+              runAsUser: 1000
+              runAsGroup: 1000
             command:
             - /bin/bash
             - -c
