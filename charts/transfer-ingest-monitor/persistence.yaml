@@ -15,6 +15,19 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
+  name: nfs-data-nts-pvc
+spec:
+  resources:
+    requests:
+      storage: 1Gi
+  accessModes:
+  - ReadOnlyMany
+  storageClassName: local-path
+  volumeName: transfer-ingest-monitor-nfs-data-nts-pv
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
   name: nfs-scratch-pvc
   labels:
     app: transfer-ingest-monitor

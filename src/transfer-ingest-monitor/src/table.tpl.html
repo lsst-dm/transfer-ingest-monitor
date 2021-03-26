@@ -9,7 +9,7 @@
         <tbody>
             {% for record in records -%}
             <tr>
-                {%- if linkify %}
+                {%- if record.linkify %}
                 <td><a href="{{ record.link_url }}">{{ record.link_text }}</a></td>
                 {%- else %}
                 <td>{{ record.link_text }}</td>

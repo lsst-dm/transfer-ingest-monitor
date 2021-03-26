@@ -1,3 +1,6 @@
+body {
+    margin-top: 1rem;
+}
 h1,h2,h3,h4 {
     font-family: Arial, Helvetica, sans-serif;
 }
@@ -8,10 +11,22 @@ p {
 
 .table {
     font-family: monospace;
+    margin-left: 1rem;
 }
 .table th {
     position: sticky; 
     top: 0;
     background-color: white;
     box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.4);
+}
+.breadcrumbs p {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: smaller;
+}
+.breadcrumbs a {
+    text-decoration: none;
+    font-weight: bold;
+}
+h2 a {
+    text-decoration: none;
 }

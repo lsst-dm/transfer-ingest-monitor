@@ -29,7 +29,7 @@ if len(sys.argv) < 2:
     sys.exit()
 now = datetime.utcnow()
 nowstr= now.strftime('%Y-%m-%dT%H:%M:%S')
-firstnite=(now-timedelta(days=30)).strftime('%Y-%m-%d')
+firstnite=(now-timedelta(days=3)).strftime('%Y-%m-%d')
 
 outdir=sys.argv[1]
 outfile = f'{outdir}/index.html'
@@ -43,13 +43,13 @@ for indir in sys.argv[2:]:
         streams.append({
             'name': indir.split('/')[-1],
             'link': indir.split('/')[-1],
-            'html': db_to_html(db, f'select * from FILE_COUNT where Nite_Obs >= "{firstnite}" order by Nite_Obs DESC'),
+            'data_table': db_to_html(db, f'select * from FILE_COUNT where Nite_Obs >= "{firstnite}" order by Nite_Obs DESC',linkify=True,prefix=f'''{indir.split('/')[-1]}/'''),
         })
         if os.path.exists(f'{indir}/index_gen3.html'):
             streams.append({
                 'name': f'''{indir.split('/')[-1]} Gen 3''',
                 'link': f'''{indir.split('/')[-1]}/index_gen3.html''',
-                'data_table': db_to_html(db, f'select * from FILE_COUNT_GEN3 where Nite_Obs >= "{firstnite}" order by Nite_Obs DESC'),
+                'data_table': db_to_html(db, f'select * from FILE_COUNT_GEN3 where Nite_Obs >= "{firstnite}" order by Nite_Obs DESC',linkify=True,prefix=f'''{indir.split('/')[-1]}/'''),
             })
     except Exception as e:
         log.error(f'{str(e)}')

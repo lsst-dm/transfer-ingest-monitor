@@ -5,23 +5,27 @@
 <body>
     <div class="container">
         <div class="row">
-            <h1>{{ name }} Transfer and Ingestion for Nite of {{ nite }}</h1>
+            <h1>{{ name }} transfer and ingestion for night of {{ nite }}</h1>
             <p>Last updated: <code>{{ nowstr }}</code></p>
+            <p class="breadcrumbs"><a href="..">Summary page</a> &lt; <a href=".">{{ name }}</a> &lt; {{ nite }}</p>
             <h2>Description</h2>
             <p>
-                "File Name" is the name of the file transferred to NCSA.<br>
-                "File Size" is measured in bytes.<br>
-                "Transfer Path" is the path of the transferred file at NCSA with root {{ storage }}.<br>
-                "Creation Time" is the UTC the file was created.<br>
-                "Ingest Time" is the UTC of the file ingestion at NCSA.<br>
                 {%- if gen3 -%}
+                "Transfer Path" is the path of the transferred file at NCSA with root {{ storage }}.<br>
                 "Status" is the result of the most recent ingestion attempt.<br>
+                "File Size" is measured in bytes.<br>
+                "Creation Time" is the UTC the file was created.<br>
                 "Transfer Time" is the UTC the file was created.<br>
+                "Ingest Time" is the UTC of the file ingestion at NCSA.<br>
                 "Delta Time 1" is the time (in seconds) between Creation and Transfer to NCSA (approximate transfer time).<br>
                 "Delta Time 2" is the time (in seconds) between Transfer and Ingestion to NCSA (approximate ingest time).<br>
                 "Err Message" is the Error Message from a failed ingestion attempt (if the most recent attempt failed).<br>
                 {%- else %}
+                "Transfer Path" is the path of the transferred file at NCSA with root {{ storage }}.<br>
+                "File Size" is measured in bytes.<br>
+                "Creation Time" is the UTC the file was created.<br>
                 "Ingest Path" is the path of the transferred file at NCSA with root {{ repo_dir }}.<br>
+                "Ingest Time" is the UTC of the file ingestion at NCSA.<br>
                 "Delta Time" is the time (in seconds) between Creation and ingestion at NCSA (approximate transfer time).<br>
                 {%- endif %}
                 <br>

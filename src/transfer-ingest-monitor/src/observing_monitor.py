@@ -17,6 +17,7 @@ from webpage import db_to_html
 from jinja2 import Template
 from styles import html_head
 import logging
+from pathlib import Path
 
 # Configure logging
 log = logging.getLogger(__name__)
@@ -38,27 +39,23 @@ def getnite(indate):
             return indate[:4]+'-'+indate[5:7]+'-'+indate[8:10]
     return ''
 
-def findtable(DIR):
-    DIRL=DIR.lower()
-    if "ncsa_auxtel" in DIRL:
-        return "nts_auxtel_"
-    if "ncsa_comcam" in DIRL:
-        return "nts_comcam_"
-    if "auxtel" in DIRL:
-        if "archiver" in DIRL:
-            return "obs_auxtel_arc_"
-        if "daq" in DIRL:
-            return "obs_auxtel_ccs_"
-
-    if "auxtel" in DIRL:
-        if "archiver" in DIRL:
-            return "obs_comcam_arc_"
-        if "ccs" in DIRL:
-            return "obs_comcam_ccs_"
-    if "bot" in DIRL:
-        return "slac_bot_"
-    print("Could not determine database for directoy "+DIR+". Exiting")
-    sys.exit(1)
+def findtable(data_dir):
+    os.path.join(data_dir)
+    table_directory_mapping = {
+        f'{Path("/lsstdata/offline/instrument/LATISS")}': 'obs_auxtel_arc_',
+        f'{Path("/lsstdata/offline/instrument/LATISS-ccs")}': 'obs_auxtel_ccs_',
+        f'{Path("/lsstdata/offline/instrument/LSSTComCam")}': 'obs_comcam_arc_',
+        f'{Path("/lsstdata/offline/instrument/LSSTComCam-ccs")}': 'obs_comcam_ccs_',
+        f'{Path("/lsstdata/offline/instrument/LSSTCam-bot")}': 'slac_bot_',
+        f'{Path("/lsstdata/offline/teststand/NCSA_auxTel")}': 'nts_auxtel_',
+        f'{Path("/lsstdata/offline/teststand/NCSA_comcam")}': 'nts_comcam_',
+    }
+    # log.debug(f'table_directory_mapping: {table_directory_mapping}')
+    try:
+        return table_directory_mapping[f'{Path(data_dir)}']
+    except Exception as e:
+        log.error("Could not determine database for directory "+data_dir+". Exiting")
+        sys.exit(1)
 
 def countdays(num_days, first_day,last_day):
     if first_day is None:
@@ -73,7 +70,7 @@ def countdays(num_days, first_day,last_day):
     else:
        last_day_stamp=datetime(int(last_day[0:4]),int(last_day[4:6]),int(last_day[6:8]),0,tzinfo=timezone.utc).timestamp()
     if first_day_stamp > last_day_stamp:
-       print("First day is after last day. Exiting.")
+       log.error("First day is after last day. Exiting.")
        sys.exit(1)
     return int((last_day_stamp-first_day_stamp)/3600/24+1)
 
@@ -184,13 +181,13 @@ class db_filler:
         self.repo=self.repo_dir+'registry.sqlite3'
         self.storage=self.input_dir+'/storage/'
         if not os.path.exists(self.input_dir):
-          print(self.input_dir+" does not exist. Exiting.")
+          log.error(self.input_dir+" does not exist. Exiting.")
           sys.exit(1)
         if not os.path.exists(self.repo):
-          print(self.repo+" does not exist. Exiting.")
+          log.error(self.repo+" does not exist. Exiting.")
           sys.exit(1)
         if not os.path.exists(self.storage):
-          print(self.storage+" does not exist. Exiting.")
+          log.error(self.storage+" does not exist. Exiting.")
           sys.exit(1)
 
     def check_output_dir(self):
@@ -198,7 +195,7 @@ class db_filler:
         self.db=self.output_dir+'/observing_monitor.sqlite3'  
         os.makedirs(self.output_dir,exist_ok=True)
         if not os.path.exists(self.output_dir):
-          print("You do not have access to "+self.output_dir+". Exiting.")
+          log.error("You do not have access to "+self.output_dir+". Exiting.")
           sys.exit(1)
         conn = sqlite3.connect(self.db)
         c = conn.cursor()
@@ -212,7 +209,7 @@ class db_filler:
 
     def check_lock(self):
         if os.path.exists(self.lock):
-          print("The lock file, "+self.lock+" exists. This indicates that another process is running. Delete it if you think this is an error. Exiting.")
+          log.error("The lock file, "+self.lock+" exists. This indicates that another process is running. Delete it if you think this is an error. Exiting.")
           sys.exit(1)
         open(self.lock, 'a').close() 
 
@@ -327,7 +324,7 @@ class db_filler:
                if self.ctimes[num] < self.ttimes[num]:
                    self.nites[num]=(datetime.strptime(self.ctimes[num],'%Y-%m-%dT%H:%M:%S.%f')-timedelta(hours=12)).strftime('%Y-%m-%d')
             else:
-               print(FULLPATH+" not found.")
+               log.debug(FULLPATH+" not found.")
             nite = getnite(self.paths[num].split('/')[0])
             if nite != '':
                self.nites[num] = nite 
@@ -375,8 +372,8 @@ class db_filler:
                 self.lnites.append(self.nite)
                 self.nlinks += 1
             else:
-                print(FULLPATH+' does not exist.')
-        print(str(self.nlinks)+" found.")
+                log.warning(FULLPATH+' does not exist.')
+        log.debug(str(self.nlinks)+" found.")
 
     def count_links_search(self,DIRLIST=[]):
         self.ltimes=[]
@@ -412,15 +409,15 @@ class db_filler:
                         self.lnites.append(timetonite(os.path.getmtime(FILEPATH)))
                     self.nlinks += 1
             else:
-                print("Warning: "+NITEDIR+" does not exist.")
+                log.warning("Warning: "+NITEDIR+" does not exist.")
 
 
     def scan_log(self):
         if self.ingest_log is None:
-           print("No ingest log. Not checking for ingestion errors.")
+           log.info("No ingest log. Not checking for ingestion errors.")
            return None
         if not os.path.exists(self.ingest_log): 
-           print("No ingest log. Not checking for ingestion errors.")
+           log.info("No ingest log. Not checking for ingestion errors.")
            return None
 
     def update_db_files(self):
@@ -431,7 +428,7 @@ class db_filler:
         conn.commit()
         conn.close()
         if len(self.filenames) > 0:
-             print("Inserted or replaced "+str(len(self.filenames))+" into TRANSFER_LIST.")
+             log.info("Inserted or replaced "+str(len(self.filenames))+" into TRANSFER_LIST.")
 
     def update_db_gen3(self):
         conn = sqlite3.connect(self.db)
@@ -442,7 +439,7 @@ class db_filler:
         conn.commit()
         conn.close()
         if len(self.ids) > 0:
-             print("Inserted or replaced "+str(len(self.ids))+" into FILE_LIST_GEN3.")
+             log.info("Inserted or replaced "+str(len(self.ids))+" into FILE_LIST_GEN3.")
 
     def update_db_links(self):
         conn = sqlite3.connect(self.db)
@@ -452,7 +449,7 @@ class db_filler:
         conn.commit()
         conn.close()
         if len(self.lpaths) > 0:
-             print("Inserted or replaced "+str(len(self.lpaths))+" into INGEST_LIST.")
+             log.info("Inserted or replaced "+str(len(self.lpaths))+" into INGEST_LIST.")
     
     def get_night_data_gen3(self):
         conn = sqlite3.connect(self.db)
@@ -599,7 +596,7 @@ def main():
     num_days=countdays(config['num_days'], config['first_day'],config['last_day'])
     gen=config['gen']
     if (gen != 2) and ( gen != 3):
-        print("'gen' variable must be either 2 or 3. Exiting.")
+        log.error("'gen' variable must be either 2 or 3. Exiting.")
         sys.exit(1)    
     db_lines=db_filler(config['input_dir'],config['output_dir'],config['ingest_log'],config['last_day'])
 

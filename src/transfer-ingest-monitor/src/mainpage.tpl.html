@@ -5,9 +5,14 @@
 <body>
     <div class="container">
         <div class="row">
+            <h1>NCSA/LSST Transfer and Ingestion Monitor</h1>
             <p>Last updated: <code>{{ nowstr }}</code></p>
-            <h1>NCSA/LSST Transfer/Ingestion Summary Page</h1>
-
+            <p>
+                This is the summary page of the Transfer and Ingest Monitor (TIM), showing information at a glance for the past few days for each of the monitored data sources.
+            </p>
+            <p>
+                Select an individual data source to view all data available for that source. 
+            </p>
             {% for stream in streams -%}
             <h2><a href="{{ stream.link }}">{{ stream.name }}</a></h2>
             {{ stream.data_table }}
