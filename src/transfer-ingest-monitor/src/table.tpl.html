@@ -1,0 +1,21 @@
+    <table style="width:100%">
+        <thead>
+            <tr style="border-top:3px solid black; border-bottom:3px solid black;">
+                {% for header in headers -%}
+                <th><b>{{ header }}</b></th>
+                {%- endfor %}
+            </tr>
+        </thead>
+        {% for record in records -%}
+        <tr style="border-bottom:2px dashed silver;">
+            {%- if linkify %}
+            <td><a href="{{ record.link_url }}">{{ record.link_text }}</a></td>
+            {%- else %}
+            <td>{{ record.link_text }}</td>
+            {%- endif %}
+            {%- for val in record.vals %}
+            <td style="border-left:2px dashed silver;">{{ val }}</td>
+            {%- endfor %}
+        </tr>
+        {%- endfor %}
+    </table>

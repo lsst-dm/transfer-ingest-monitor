@@ -13,7 +13,7 @@ fi
 
 DEPLOYMENT_NAME="transfer-ingest-monitor"
 SOURCE_DIR="src"
-TARGET_DIR="/home/worker/transfer-ingest-monitor"
+TARGET_DIR="/home/worker/app"
 
 POD_ID="$(kubectl get pod -n "${NAMESPACE}" --selector=app="${DEPLOYMENT_NAME}" -o jsonpath='{.items[0].metadata.name}')"
 echo "Updating source code in ${POD_ID}..."
@@ -29,6 +29,7 @@ tar cf - "${SOURCE_DIR}" | \
 
 LASTSYNC="$(kubectl exec -it -n "${NAMESPACE}" --container="${DEPLOYMENT_NAME}" "${POD_ID}" -- cat "${TARGET_DIR}/.codesync" | tr -d '\n' | tr -d '\r')"
 # LASTSYNC="$(echo "${LASTSYNC}" | tr -d '\n' | tr -d '\r')"
+rm -f "${SOURCE_DIR}/.codesync"
 if [[ "${LASTSYNC}" == "${TIMESTAMP}" ]]; then
   echo "Sync successful."
   exit 0

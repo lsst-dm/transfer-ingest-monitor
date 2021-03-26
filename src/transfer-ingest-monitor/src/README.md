@@ -20,7 +20,7 @@ and ingested into Gen2 Butler repositories.
 Multiples examples listed in `observing_monitor_test.sh`
 ```
 OPTIONS=''
-INPUT=/lsstdata/offline/teststand/auxTel/L1Archiver
+INPUT=/lsstdata/offline/instrument/LATISS
 OUTPUT=/home/emorgan2/public_html/auxTel
 python observing_monitor.py --input_dir $INPUT --output $OUTPUT $OPTIONS
 ```

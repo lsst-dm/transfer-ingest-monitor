@@ -6,3 +6,4 @@ lsst-efd-client
 astropy
 requests
 psutil
+Jinja2

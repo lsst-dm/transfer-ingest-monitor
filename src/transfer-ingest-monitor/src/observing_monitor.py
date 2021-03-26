@@ -14,7 +14,21 @@ import statistics
 import traceback
 import psycopg2
 from webpage import db_to_html
+from jinja2 import Template
+from styles import css
+import logging
 
+# Configure logging
+log = logging.getLogger(__name__)
+handler = logging.StreamHandler()
+formatter = logging.Formatter('%(asctime)s [%(name)-12s] %(levelname)-8s %(message)s')
+handler.setFormatter(formatter)
+log.addHandler(handler)
+try:
+    log.setLevel(os.environ['LOG_LEVEL'].upper())
+except:
+    log.setLevel('DEBUG')
+    
 def getnite(indate):
     if len(indate) == 8:
         if indate.isdigit():
@@ -477,97 +491,108 @@ class db_filler:
         conn.commit()
         conn.close()
 
-    def update_nite_html_gen3(self):
-        outhtml=open(self.output_dir+'/'+self.nite+'_gen3.html','w')
-        outhtml.write('<html>\n<head>\n<style>\n')
-        outhtml.write('table, th, td {\nborder-collapse: collapse;\nfont-size: 20pt;\n }\n')
-        outhtml.write('p {font-size: 20pt;\n }\n')
-        outhtml.write('</style>\n')
-        outhtml.write('</head>\n<body>\n')
-        outhtml.write('<h1>'+self.name+' Transfer and Ingestion for Nite of '+self.nite+'</h1>') 
-        outhtml.write('<p>Last updated: '+self.nowstr+'</p>\n')
-        outhtml.write('<h2>Description</h2>\n')
-        outhtml.write('<p>"File Name" is the name of the file transferred to NCSA.<br>\n')
-        outhtml.write('"Status" is the result of the most recent ingestion attempt.<br>\n')
-        outhtml.write('"File Size" is measured in bytes.<br>\n')
-        outhtml.write('"Transfer Path" is the path of the transferred file at NCSA with root '+self.storage+'.<br>\n')
-        outhtml.write('"Creation Time" is the UTC the file was created (based on Unix ctime).<br>\n')
-        outhtml.write('"Transfer Time" is the UTC the file was created.<br>\n')
-        outhtml.write('"Ingest Time" is the UTC of the file ingestion at NCSA.<br>\n')
-        outhtml.write('"Delta Time 1" is the time (in seconds) between Creation and Transfer to NCSA (approximate transfer time).<br>\n')
-        outhtml.write('"Delta Time 2" is the time (in seconds) between Transfer and Ingestion to NCSA (approximate ingest time).<br>\n')
-        outhtml.write('"Err Message" is the Error Message from a failed ingestion attempt (if the most recent attempt failed).<br><br>\n')
-        outhtml.write(db_to_html(self.db, ['select Transfer_Path, Status, File_Size, Creation_Time, Transfer_Time, Ingest_Time,  printf("%.1f",(julianday(Transfer_Time)-julianday(Creation_Time))*24*3600.) as Delta_Time_1,  printf("%.1f",(julianday(Ingest_Time)-julianday(Transfer_Time))*24*3600.) as Delta_Time_2, Err_Message from FILE_LIST_GEN3 where Nite = "'+self.nite+'" ORDER BY Creation_Time']))
-        outhtml.write('</body>\n</html>')
-        outhtml.close()
 
-    def update_nite_html(self):
-        outhtml=open(self.output_dir+'/'+self.nite+'.html','w')
-        outhtml.write('<html>\n<head>\n<style>\n')
-        outhtml.write('table, th, td {\nborder-collapse: collapse;\nfont-size: 20pt;\n }\n')
-        outhtml.write('p {font-size: 20pt;\n }\n')
-        outhtml.write('</style>\n')
-        outhtml.write('</head>\n<body>\n')
-        outhtml.write('<h1>'+self.name+' Transfer and Ingestion for Nite of '+self.nite+'</h1>') 
-        outhtml.write('<p>Last updated: '+self.nowstr+'</p>\n')
-        outhtml.write('<h2>Description</h2>\n')
-        outhtml.write('<p>"File Name" is the name of the file transferred to NCSA.<br>\n')
-        outhtml.write('"File Size" is measured in bytes.<br>\n')
-        outhtml.write('"Transfer Path" is the path of the transferred file at NCSA with root '+self.storage+'.<br>\n')
-        outhtml.write('"Creation Time" is the UTC the file was created.<br>\n')
-        outhtml.write('"Ingest Path" is the path of the transferred file at NCSA with root '+self.repo_dir+'.<br>\n')
-        outhtml.write('"Ingest Time" is the UTC of the file ingestion at NCSA.<br>\n')
-        outhtml.write('"Delta Time" is the time (in seconds) between Creation and ingestion at NCSA (approximate transfer time).<br><br>\n')
-        outhtml.write(db_to_html(self.db, ['select Transfer_Path, File_Size, Creation_Time, "None" as Ingest_Path, "None" as Ingest_Time, 0.0 as Delta_Time from TRANSFER_LIST where FILENUM not in (select FILENUM from Ingest_list) and Nite_Trans = "'+self.nite+'" ORDER BY Creation_Time', 'select Transfer_Path, File_Size, Creation_Time, Ingest_Path, Ingest_Time, printf("%.1f",(julianday(Ingest_Time)-julianday(Creation_Time))*24*3600.) as Delta_Time from Ingest_List i, Transfer_List t where i.FILENUM = t.FILENUM and Nite_Obs = "'+self.nite+'" ORDER BY Creation_time']))
-        outhtml.write('</body>\n</html>')
-        outhtml.close()
+    def update_nite_html(self, gen3=False):
+        if gen3:
+            outfilename = f'{self.output_dir}/{self.nite}_gen3.html'
+            data = db_to_html(self.db, [
+            f'''
+                select 
+                    Transfer_Path, 
+                    Status, 
+                    File_Size,
+                    Creation_Time,
+                    Transfer_Time,
+                    Ingest_Time,
+                    printf("%.1f",(julianday(Transfer_Time)-julianday(Creation_Time))*24*3600.) as Delta_Time_1,
+                    printf("%.1f",(julianday(Ingest_Time)-julianday(Transfer_Time))*24*3600.) as Delta_Time_2,
+                    Err_Message 
+                from FILE_LIST_GEN3 
+                where Nite = "{self.nite}" 
+                ORDER BY Creation_Time
+            '''
+            ])
+        else:
+            outfilename = f'{self.output_dir}/{self.nite}.html'
+            data = db_to_html(self.db, [
+            f'''
+                select 
+                    Transfer_Path,
+                    File_Size,
+                    Creation_Time,
+                    "None" as Ingest_Path,
+                    "None" as Ingest_Time,
+                    0.0 as Delta_Time
+                from TRANSFER_LIST 
+                where 
+                    FILENUM not in (select FILENUM from Ingest_list) and 
+                    Nite_Trans = "{self.nite}" 
+                ORDER BY Creation_Time
+            ''',
+            f'''
+                select 
+                    Transfer_Path,
+                    File_Size,
+                    Creation_Time,
+                    Ingest_Path,
+                    Ingest_Time,
+                    printf("%.1f",(julianday(Ingest_Time)-julianday(Creation_Time))*24*3600.) as Delta_Time 
+                from 
+                    Ingest_List i,
+                    Transfer_List t 
+                where 
+                    i.FILENUM = t.FILENUM and Nite_Obs = "{self.nite}" 
+                ORDER BY Creation_time
+            '''
+            ])
+        try:
+            # Render table template after populating with query results
+            with open(os.path.join(os.path.dirname(__file__), "nite.tpl.html")) as f:
+                templateText = f.read()
+            template = Template(templateText)
+            html = template.render(
+                css=css,
+                name=self.name,
+                nowstr=self.nowstr,
+                nite=self.nite,
+                storage=self.storage,
+                repo_dir=self.repo_dir,
+                data=data,
+                gen3=gen3,
+            )
+            # log.debug(f'{html}')
+        except Exception as e:
+            log.error(f'{str(e)}')
+            html = f'{str(e)}'
 
-    def update_main_html_gen3(self):
-        outhtml=open(self.output_dir+'/index_gen3.html','w')
-        outhtml.write('<html>\n<head>\n<style>\n')
-        outhtml.write('table, th, td {\nborder-collapse: collapse;\nfont-size: 20pt;\n }\n')
-        outhtml.write('p {font-size: 20pt;\n }\n')
-        outhtml.write('</style>\n')
-        outhtml.write('</head>\n<body>\n')
-        outhtml.write('<h1>'+self.name+' Transfer and Ingestion</h1>')
-        outhtml.write('<p>Last updated: '+self.nowstr+'</p>\n')
-        outhtml.write('<h2>Description</h2>\n')
-        outhtml.write('<p>"Nite Obs" is the observing night (tied to UTC-12).<br>\n')
-        outhtml.write('"Last Update" is the most recent UTC time that Nite Obs was checked.<br>\n')
-        outhtml.write('"N Files" is the number of files received at NCSA.<br>\n')
-        outhtml.write('"Last Creation" is the UTC of the most recent file creation.<br>\n')
-        outhtml.write('"Last Transfer" is the UTC of the most recent file creation.<br>\n')
-        outhtml.write('"N Ingest" is the number of files successfully ingested at NCSA.<br>\n')
-        outhtml.write('"N Not Fits" is the number of uningested files that don\'t end in ".fits".<br>\n')
-        outhtml.write('"N Small" is the number of ".fits" files smaller than 10K.<br>\n')
-        outhtml.write('"N Error" is the number of uningested ".fits" files that are greater than 10K.<br>\n')
-        outhtml.write('"Last Ingest" is the UTC of the most recently file ingest.<br><br>\n')
-        outhtml.write(db_to_html(self.db, 'select * from FILE_COUNT_GEN3 ORDER by Nite_Obs DESC',linkify=True,modifier='_gen3'))
-        outhtml.write('</body>\n</html>')
-        outhtml.close()
+        with open(outfilename, 'w') as outf:
+            outf.write(html)
 
-    def update_main_html(self):
-        outhtml=open(self.output_dir+'/index.html','w')
-        outhtml.write('<html>\n<head>\n<style>\n')
-        outhtml.write('table, th, td {\nborder-collapse: collapse;\nfont-size: 20pt;\n }\n')
-        outhtml.write('p {font-size: 20pt;\n }\n')
-        outhtml.write('</style>\n')
-        outhtml.write('</head>\n<body>\n')
-        outhtml.write('<h1>'+self.name+' Transfer and Ingestion</h1>') 
-        outhtml.write('<p>Last updated: '+self.nowstr+'</p>\n')
-        outhtml.write('<h2>Description</h2>\n')
-        outhtml.write('<p>"Nite Obs" is the observing night (tied to UTC-12).<br>\n')
-        outhtml.write('"Last Update" is the most recent UTC time that Nite Obs was checked.<br>\n')
-        outhtml.write('"N Files" is the number of files received at NCSA.<br>\n')
-        outhtml.write('"Last Creation" is the UTC of the most recent file creation.<br>\n')
-        outhtml.write('"N Ingest" is the number of files successfully ingested at NCSA.<br>\n')
-        outhtml.write('"N Small" is the number of uningested files smaller than 10K.<br>\n')
-        outhtml.write('"N Not Fits" is the number of uningested files that don\'t end in ".fits".<br>\n')
-        outhtml.write('"N Error" is the number of uningested ".fits" files that are greater than 10K.<br>\n')
-        outhtml.write('"Last Ingest" is the UTC of the most recently file ingest.<br><br>\n')
-        outhtml.write(db_to_html(self.db, 'select * from FILE_COUNT ORDER by Nite_Obs DESC',linkify=True))
-        outhtml.write('</body>\n</html>')
-        outhtml.close()
+    def update_main_html(self, gen3=False):
+        file_count_table = 'FILE_COUNT'
+        outfilename = f'{self.output_dir}/index.html'
+        if gen3:
+            file_count_table += '_GEN3'
+            outfilename = f'{self.output_dir}/index_gen3.html'
+        try:
+            # Render table template after populating with query results
+            with open(os.path.join(os.path.dirname(__file__), "main.tpl.html")) as f:
+                templateText = f.read()
+            template = Template(templateText)
+            html = template.render(
+                css=css,
+                name=self.name,
+                nowstr=self.nowstr,
+                data=db_to_html(self.db, f'select * from {file_count_table} ORDER by Nite_Obs DESC',linkify=True),
+                gen3=gen3,
+            )
+            # log.debug(f'{html}')
+        except Exception as e:
+            log.error(f'{str(e)}')
+            html = f'{str(e)}'
+
+        with open(outfilename, 'w') as outf:
+            outf.write(html)
 
 def main():
     config = get_config()
@@ -600,7 +625,7 @@ def main():
         for num in range(num_days):
             db_lines.set_date(num)
             db_lines.get_night_data_gen3()
-            db_lines.update_nite_html_gen3() 
-        db_lines.update_main_html_gen3()
+            db_lines.update_nite_html(gen3=True)
+        db_lines.update_main_html(gen3=True)
     os.remove(db_lines.lock)
 main()

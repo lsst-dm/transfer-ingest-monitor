@@ -1,0 +1,28 @@
+<html>
+
+<head>
+    <style>
+        {{ css }}
+    </style>
+</head>
+
+<body>
+    <h1>{{ name }} Transfer and Ingestion</h1>
+    <p>Last updated: {{ nowstr }}</p>
+    <h2>Description</h2>
+    <p>"Nite Obs" is the observing night (tied to UTC-12).<br>
+        "Last Update" is the most recent UTC time that Nite Obs was checked.<br>
+        "N Files" is the number of files received at NCSA.<br>
+        "Last Creation" is the UTC of the most recent file creation.<br>
+        {%- if gen3 -%}
+        "Last Transfer" is the UTC of the most recent file creation.<br>
+        {%- endif %}
+        "N Ingest" is the number of files successfully ingested at NCSA.<br>
+        "N Small" is the number of uningested files smaller than 10K.<br>
+        "N Not Fits" is the number of uningested files that don't end in ".fits".<br>
+        "N Error" is the number of uningested ".fits" files that are greater than 10K.<br>
+        "Last Ingest" is the UTC of the most recently file ingest.<br><br>
+        {{ data }}
+</body>
+
+</html>

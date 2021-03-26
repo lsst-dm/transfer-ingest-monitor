@@ -19,29 +19,29 @@ OUTDIR=~/public_html/transfer-ingest-monitor
 #INPUT is the directory 1 level up from the repo
 #OUTPUT is where the html and a small db will be written
 
-INPUT=/lsstdata/offline/teststand/auxTel/L1Archiver
+INPUT=/lsstdata/offline/instrument/LATISS
 OUTPUT=$OUTDIR/auxTel
 OPTIONS="--first_day=20210301 --gen 3"
 
 set -x
 python3 observing_monitor.py --input_dir $INPUT --output $OUTPUT $OPTIONS
 
-#INPUT=/lsstdata/offline/teststand/comcam/CCS
+#INPUT=/lsstdata/offline/instrument/LSSTComCam-ccs
 #OUTPUT=$OUTDIR/comcam_ccs
 #OPTIONS="--first_day=20190716"
 
-#INPUT=/lsstdata/offline/teststand/NCSA_auxTel
+#INPUT=/lsstdata/offline/instrument/NCSA_auxTel
 #OUTPUT=$OUTDIR/NCSA_auxTel
 #OPTIONS="--first_day=20200325"
 
-#INPUT=/lsstdata/offline/teststand/BOT 
-#OUTPUT=$OUTDIR/BOT 
+#INPUT=/lsstdata/offline/instrument/LSSTCam-bot 
+#OUTPUT=$OUTDIR/LSSTCam-bot 
 #OPTIONS="--first_day=20201117"
 
-#INPUT=/lsstdata/offline/teststand/comcam/Archiver
+#INPUT=/lsstdata/offline/instrument/LSSTComCam
 #OUTPUT=$OUTDIR/comcam_archiver
 #OPTIONS="--first_day=20190715"
 
-#INPUT=/lsstdata/offline/teststand/NCSA_comcam
+#INPUT=/lsstdata/offline/instrument/NCSA_comcam
 #OUTPUT=$OUTDIR/NCSA_comcam
 #OPTIONS="--first_day=20200306"
