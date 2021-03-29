@@ -19,11 +19,9 @@ p {
     background-color: white;
     box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.4);
 }
-.breadcrumbs p {
+p.breadcrumbs,
+p.breadcrumbs a {
     font-family: Arial, Helvetica, sans-serif;
-    font-size: smaller;
-}
-.breadcrumbs a {
     text-decoration: none;
     font-weight: bold;
 }
