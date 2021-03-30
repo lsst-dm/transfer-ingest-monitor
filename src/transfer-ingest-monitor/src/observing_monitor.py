@@ -433,7 +433,23 @@ class db_filler:
         conn = sqlite3.connect(self.db)
         c = conn.cursor()
         for num in range(len(self.filenames)):
-            c.execute("INSERT OR REPLACE INTO TRANSFER_LIST (Filenum, Nite_Trans, Last_Update, Transfer_Path, Creation_Time, File_Size) VALUES("+str(self.tinos[num]*10000+self.tdevs[num])+", '"+self.tnites[num]+"', '"+self.nowstr+"', '"+self.filenames[num]+"', '"+self.ttimestrs[num]+"', "+str(self.filesizes[num])+")")
+            c.execute(f'''
+                INSERT OR REPLACE INTO TRANSFER_LIST (
+                    Filenum, 
+                    Nite_Trans, 
+                    Last_Update, 
+                    Transfer_Path, 
+                    Creation_Time, 
+                    File_Size
+                ) VALUES(
+                   {str(self.tinos[num]*10000+self.tdevs[num])}, 
+                   '{self.tnites[num]}', 
+                   '{self.nowstr}', 
+                   '{self.filenames[num]}', 
+                   '{self.ttimestrs[num]}', 
+                   {str(self.filesizes[num])}
+                )
+            ''')
         conn.commit()
         conn.close()
         if len(self.filenames) > 0:
@@ -443,7 +459,31 @@ class db_filler:
         conn = sqlite3.connect(self.db)
         c = conn.cursor()
         for num in range(len(self.ids)):
-            query="INSERT OR REPLACE INTO FILE_LIST_GEN3 (Filenum, Nite, Last_Update, Transfer_Path, Status, Creation_Time, Transfer_Time, Ingest_Time, File_Size, Err_Message) VALUES("+str(self.ids[num])+", '"+self.nites[num]+"', '"+self.nowstr+"', '"+self.paths[num]+"', '"+self.statuss[num]+"', '"+self.ctimes[num]+"', '"+self.ttimes[num]+"', '"+self.itimes[num]+"', "+str(self.filesizes[num])+", '"+self.err_messages[num]+"')"
+            query=f'''
+                INSERT OR REPLACE INTO FILE_LIST_GEN3 (
+                    Filenum, 
+                    Nite, 
+                    Last_Update, 
+                    Transfer_Path, 
+                    Status, 
+                    Creation_Time, 
+                    Transfer_Time, 
+                    Ingest_Time, 
+                    File_Size, 
+                    Err_Message
+                ) VALUES(
+                    {str(self.ids[num])}, 
+                    '{self.nites[num]}', 
+                    '{self.nowstr}', 
+                    '{self.paths[num]}', 
+                    '{self.statuss[num]}', 
+                    '{self.ctimes[num]}', 
+                    '{self.ttimes[num]}', 
+                    '{self.itimes[num]}', 
+                    {str(self.filesizes[num])}, 
+                    '{self.err_messages[num]}'
+                )
+                '''
             c.execute(query)
         conn.commit()
         conn.close()
@@ -454,7 +494,21 @@ class db_filler:
         conn = sqlite3.connect(self.db)
         c = conn.cursor()
         for num in range(len(self.lpaths)):
-            c.execute("INSERT OR REPLACE INTO INGEST_LIST (Filenum, Ingest_Path, Nite_Obs, Last_Update, Ingest_Time) VALUES("+str(self.linos[num]*10000+self.ldevs[num])+", '"+self.lpaths[num]+"', '"+self.lnites[num]+"', '"+self.nowstr+"', '"+self.ltimestrs[num]+"')") 
+            c.execute(f'''
+                INSERT OR REPLACE INTO INGEST_LIST (
+                    Filenum, 
+                    Ingest_Path, 
+                    Nite_Obs, 
+                    Last_Update, 
+                    Ingest_Time) 
+                VALUES(
+                    {str(self.linos[num]*10000+self.ldevs[num])}, 
+                    '{self.lpaths[num]}', 
+                    '{self.lnites[num]}', 
+                    '{self.nowstr}', 
+                    '{self.ltimestrs[num]}'
+                )
+            ''') 
         conn.commit()
         conn.close()
         if len(self.lpaths) > 0:
