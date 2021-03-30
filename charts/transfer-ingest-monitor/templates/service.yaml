@@ -5,7 +5,7 @@ metadata:
   name: transfer-ingest-monitor
 spec:
   selector:
-    app: transfer-ingest-monitor
+    app: transfer-ingest-monitor-nginx
   ports:
   - port: 80
     protocol: TCP
