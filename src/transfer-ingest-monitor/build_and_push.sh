@@ -1,4 +1,13 @@
-#!/bin/bash
+#!/bin/bash -e
 
-docker build -t lsstdm/transfer-ingest-monitor:latest . && \
-docker push lsstdm/transfer-ingest-monitor:latest
+if [[ "x$1" == "x" ]]; then
+    tag="dev"
+else
+    tag="$1"
+fi
+
+repo="lsstdm/transfer-ingest-monitor"
+echo "Building ${repo}:${tag} ..."
+docker build -t ${repo}:${tag} .
+echo "Pushing ${repo}:${tag} ..."
+docker push ${repo}:${tag}
