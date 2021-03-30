@@ -64,6 +64,14 @@ spec:
         env:
         - name: "MONITOR_NUM_DAYS"
           value: "{{ .Values.monitorNumDays }}"
+        - name: "PG_HOST"
+          value: "{{ .Values.db.host }}"
+        - name: "PG_PORT"
+          value: "{{ .Values.db.port }}"
+        - name: "PG_DATABASE"
+          value: "{{ .Values.db.name }}"
+        - name: "PG_USERNAME"
+          value: "{{ .Values.db.user }}"
         volumeMounts:
         - name: pgpass-secrets-dir
           mountPath: "/var/run/secrets/pgpass"

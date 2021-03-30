@@ -260,8 +260,11 @@ class db_filler:
 
     def count_files_gen3(self):   
         table=findtable(self.input_dir) 
+        # TODO: Remove the temporary use of `SET search_path TO dbbbm;`. This will be set
+        # as the default by the db admin.
         query=f'''
         set TIMEZONE='UTC'; 
+        SET search_path TO dbbbm;
         WITH 
             ne AS (
                 SELECT 
@@ -301,7 +304,13 @@ class db_filler:
             AND 
             mtime = start_time
         '''
-        engine = sqlalchemy.create_engine('postgresql://svclsstdbdbbbm@lsst-pg-prod1.ncsa.illinois.edu:5432/lsstdb1')
+        db = {
+            'user': os.environ['PG_USERNAME'],
+            'host': os.environ['PG_HOST'],
+            'port': os.environ['PG_PORT'],
+            'db': os.environ['PG_DATABASE'],
+        }
+        engine = sqlalchemy.create_engine(f'''postgresql://{db['user']}@{db['host']}:{db['port']}/{db['db']}''')
         df=pd.read_sql(query, engine)
         self.paths=np.array(df['path'])
         self.ids=np.array(df['id'],dtype=int)
