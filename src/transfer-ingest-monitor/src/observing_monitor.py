@@ -18,6 +18,11 @@ from jinja2 import Template
 from styles import html_head
 import logging
 from pathlib import Path
+import re
+
+from astropy.time import Time, TimeDelta
+from lsst_efd_client import EfdClient
+import asyncio
 
 # Configure logging
 log = logging.getLogger(__name__)
@@ -172,6 +177,7 @@ class db_filler:
         else:
            self.last_day=datetime(int(last_day[0:4]),int(last_day[4:6]),int(last_day[6:8]),0,tzinfo=timezone.utc)
         self.ingest_log = ingest_log
+        self.image_data = []
     def db_conn(self):
         params=config()
         conn = psycopg2.connect(**params)
@@ -199,11 +205,66 @@ class db_filler:
           sys.exit(1)
         conn = sqlite3.connect(self.db)
         c = conn.cursor()
-        c.execute("CREATE TABLE IF NOT EXISTS FILE_COUNT (Nite_Obs TEXT PRIMARY KEY, Last_Update TEXT, N_Files INTEGER, Last_Creation TEXT, N_Ingest INTEGER, N_Small INTEGER, N_Not_Fits, N_Error INTEGER, Last_Ingest TEXT)")
-        c.execute("CREATE TABLE IF NOT EXISTS FILE_COUNT_GEN3 (Nite_Obs TEXT PRIMARY KEY, Last_Update TEXT, N_Files INTEGER, Last_Creation TEXT, N_Ingest INTEGER, N_Small INTEGER, N_Not_Fits, N_Error INTEGER, Last_Transfer TEXT, Last_Ingest TEXT)")
-        c.execute("CREATE TABLE IF NOT EXISTS FILE_LIST_GEN3 (Filenum INTEGER PRIMARY KEY, Nite TEXT, Last_Update TEXT, Transfer_Path TEXT, Status TEXT, Creation_Time TEXT, Transfer_Time TEXT, Ingest_Time TEXT, File_Size INT, Err_Message TEXT)")
-        c.execute("CREATE TABLE IF NOT EXISTS TRANSFER_LIST (Filenum INTEGER PRIMARY KEY,  Nite_Trans TEXT, Last_Update TEXT, Transfer_Path TEXT, Creation_Time TEXT, File_Size INT)")
-        c.execute("CREATE TABLE IF NOT EXISTS INGEST_LIST (FILENUM INTEGER PRIMARY KEY, Ingest_Path TEXT, Nite_Obs TEXT, Last_Update TEXT, Ingest_Time TEXT)")
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS FILE_COUNT (
+                Nite_Obs TEXT PRIMARY KEY, 
+                Last_Update TEXT, 
+                N_Files INTEGER, 
+                Last_Creation TEXT, 
+                N_Ingest INTEGER, 
+                N_Small INTEGER, 
+                N_Not_Fits, 
+                N_Error INTEGER, 
+                Last_Ingest TEXT
+            )
+        ''')
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS FILE_COUNT_GEN3 (
+                Nite_Obs TEXT PRIMARY KEY,
+                Last_Update TEXT,
+                N_Files INTEGER,
+                Last_Creation TEXT,
+                N_Ingest INTEGER,
+                N_Small INTEGER,
+                N_Not_Fits,
+                N_Error INTEGER,
+                Last_Transfer TEXT,
+                Last_Ingest TEXT
+            )'''
+        )
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS FILE_LIST_GEN3 (
+                Filenum INTEGER PRIMARY KEY,
+                Nite TEXT,
+                Last_Update TEXT,
+                Transfer_Path TEXT,
+                Status TEXT,
+                Creation_Time TEXT,
+                Transfer_Time TEXT,
+                Ingest_Time TEXT,
+                File_Size INT,
+                Err_Message TEXT
+            )'''
+        )
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS TRANSFER_LIST (
+                Filenum INTEGER PRIMARY KEY,
+                Nite_Trans TEXT,
+                Last_Update TEXT,
+                Transfer_Path TEXT,
+                Creation_Time TEXT,
+                File_Size INT
+            )'''
+        )
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS INGEST_LIST (
+                FILENUM INTEGER PRIMARY KEY,
+                Ingest_Path TEXT,
+                Nite_Obs TEXT,
+                Last_Update TEXT,
+                Ingest_Time TEXT
+            )'''
+        )
         conn.commit()
         conn.close()
 
@@ -258,7 +319,86 @@ class db_filler:
                      self.nfiles += 1
                      dirfile+=1
 
-    def count_files_gen3(self):   
+    async def get_creation_times(self):
+        
+        client = EfdClient('ldf_stable_efd')
+        cl = client.influx_client
+
+        nite_time = Time(f'{self.nite}T00:00:00', scale='tai')
+
+        def make_query_str(start_time):
+            # query = f'''
+            #         SELECT 
+            #             "imageName",
+            #             "imageDate",
+            #             "imageIndex",
+            #             "timestampAcquisitionStart",
+            #             "timestampEndOfReadout",
+            #             "imageSource",
+            #             "imagesInSequence"
+            #         FROM "efd"."autogen"."lsst.sal.ATCamera.logevent_endReadout" 
+            #         WHERE time >= '{start_time.isot}Z'
+            #         '''
+            query = f'''
+                    SELECT 
+                        "camera", 
+                        "archiverName",
+                        "obsid", 
+                        "description", 
+                        "private_rcvStamp", 
+                        "private_sndStamp",
+                        "statusCode" 
+                    FROM "efd"."autogen"."lsst.sal.ATArchiver.logevent_imageRetrievalForArchiving" 
+                    WHERE time >= '{start_time.isot}Z'
+                    '''
+            # log.debug(query)
+            return query
+            
+        async def submit_query():
+            result = await cl.query(make_query_str(nite_time))
+            # log.debug(result)
+            image_data = []
+            if len(result) > 0:
+                for index, row in result.iterrows():
+                    # log.debug(f'''
+                    # imageName: {row['imageName']}
+                    # imageDate: {row['imageDate']}
+                    # timestampAcquisitionStart: {row['timestampAcquisitionStart']} --> {datetime.fromtimestamp(row['timestampAcquisitionStart']).strftime("%m-%d-%YT%H:%M:%S.%f %z")}
+                    # timestampEndOfReadout: {row['timestampEndOfReadout']} --> {datetime.fromtimestamp(row['timestampEndOfReadout']).strftime("%m-%d-%YT%H:%M:%S.%f %z")}
+                    # ''')
+                    try:
+                        filename = re.sub(r'(.+) is successfully transferred.*', r'\1', row['description']).strip()
+                        # log.debug(f'''
+                        # obsid: {row['obsid']}
+                        # camera: {row['camera']}
+                        # archiverName: {row['archiverName']}
+                        # created_time: {datetime.fromtimestamp(row['private_sndStamp']).strftime("%m-%d-%YT%H:%M:%S")}
+                        # description: {row['description']}
+                        # filename: {filename}
+                        # ''')
+                        image_data.append({
+                            'obsid': row['obsid'],
+                            'camera': row['camera'],
+                            'archiverName': row['archiverName'],
+                            'created_time': datetime.fromtimestamp(row['private_sndStamp']).strftime("%m-%d-%YT%H:%M:%S"),
+                            'description': row['description'],
+                            'filename': filename,
+                        })
+                    except Exception as e:
+                        log.error(f'Error displaying row: {row}. Error message: {str(e)}')
+            self.image_data = image_data
+            return image_data
+        
+        # loop = asyncio.get_event_loop()
+        # tasks = [
+        #     loop.create_task(submit_query()),
+        # ]
+        # loop.run_until_complete(asyncio.wait(tasks))
+        # loop.close()
+        
+        return await submit_query()
+        
+    def count_files_gen3(self):
         table=findtable(self.input_dir) 
         query=f'''
         set TIMEZONE='UTC'; 
@@ -266,6 +406,7 @@ class db_filler:
             ne AS (
                 SELECT 
                     id, 
+                    filename,
                     relpath||'/'||filename as path, 
                     status, 
                     added_on, 
@@ -288,6 +429,7 @@ class db_filler:
             ) 
         SELECT 
             id, 
+            filename,
             path, 
             status, 
             CAST(CAST(added_on as timestamp) as varchar(25)) as ttime, 
@@ -310,6 +452,7 @@ class db_filler:
         engine = sqlalchemy.create_engine(f'''postgresql://{db['user']}@{db['host']}:{db['port']}/{db['db']}''')
         df=pd.read_sql(query, engine)
         self.paths=np.array(df['path'])
+        self.filenames=np.array(df['filename'])
         self.ids=np.array(df['id'],dtype=int)
         self.nites=np.array(len(df)*['0000-00-00'])
         self.statuss=np.array(df['status'])
@@ -456,6 +599,13 @@ class db_filler:
         conn = sqlite3.connect(self.db)
         c = conn.cursor()
         for num in range(len(self.ids)):
+            search = [image for image in self.image_data if image['filename'] == self.filenames[num]]
+            # log.debug(f'Image search. Find filename "{self.filenames[num]}": {search}')
+            if search:
+                created_time = search[0]['created_time']
+            else:
+                created_time = self.ctimes[num]
+            # log.debug(f'Created time: {created_time}')
             query=f'''
                 INSERT OR REPLACE INTO FILE_LIST_GEN3 (
                     Filenum, 
@@ -474,7 +624,7 @@ class db_filler:
                     '{self.nowstr}', 
                     '{self.paths[num]}', 
                     '{self.statuss[num]}', 
-                    '{self.ctimes[num]}', 
+                    '{created_time}', 
                     '{self.ttimes[num]}', 
                     '{self.itimes[num]}', 
                     {str(self.filesizes[num])}, 
@@ -515,13 +665,54 @@ class db_filler:
         conn = sqlite3.connect(self.db)
         c = conn.cursor()
         sizemin='10000'
-        c.execute('select count(Transfer_Path), max(Creation_Time), sum(Status == "SUCCESS"), max(Transfer_Time), max(Ingest_Time), sum(substr(Transfer_Path,-5) != ".fits"), sum((substr(Transfer_Path,-5) == ".fits")*(File_Size < '+sizemin+')), sum((substr(Transfer_Path,-5) == ".fits")*(File_Size > '+sizemin+')*(Status != "SUCCESS")) from FILE_LIST_GEN3 t where Nite = "'+self.nite+'" group by Nite')
+        c.execute(f'''
+            SELECT 
+                count(Transfer_Path),
+                max(Creation_Time),
+                sum(Status == "SUCCESS"),
+                max(Transfer_Time),
+                max(Ingest_Time),
+                sum(substr(Transfer_Path,-5) != ".fits"),
+                sum(
+                    (substr(Transfer_Path,-5) == ".fits")*(File_Size < {sizemin})
+                ),
+                sum(
+                    (substr(Transfer_Path,-5) == ".fits")*(File_Size > {sizemin})*(Status != "SUCCESS")
+                ) 
+            FROM FILE_LIST_GEN3 t 
+            WHERE Nite = "{self.nite}" 
+            GROUP BY Nite
+        ''')
         rows=c.fetchall()
         if len(rows) > 0:
             [self.ntransfer, self.maxctime, self.ningest, self.maxttime, self.maxitime, self.nnotfits, self.nsmall, self.nerror]=rows[0]
         else:
             [self.ntransfer, self.maxctime, self.ningest, self.maxttime, self.maxitime, self.nnotfits, self.nsmall, self.nerror]=[0, '0000-00-00T00:00:00', 0, '0000-00-00T00:00:00','0000-00-00T00:00:00', 0, 0, 0 ]
-        c.execute("INSERT OR REPLACE INTO FILE_COUNT_GEN3 (Nite_Obs, Last_Update, N_Files, Last_Creation, N_Ingest, N_Small, N_Not_Fits, N_Error, Last_Transfer, Last_Ingest) VALUES('"+self.nite+"', '"+self.nowstr+"', "+str(self.ntransfer)+", '"+self.maxctime+"', "+str(self.ningest)+", "+str(self.nsmall)+", "+str(self.nnotfits)+", "+str(self.nerror)+", '"+self.maxttime+"', '"+self.maxitime+"')")
+        c.execute(f'''
+            INSERT OR REPLACE INTO FILE_COUNT_GEN3 (
+                Nite_Obs,
+                Last_Update,
+                N_Files,
+                Last_Creation,
+                N_Ingest,
+                N_Small,
+                N_Not_Fits,
+                N_Error,
+                Last_Transfer,
+                Last_Ingest
+            ) VALUES(
+                '{self.nite}',
+                '{self.nowstr}',
+                {str(self.ntransfer)},
+                '{self.maxctime}',
+                {str(self.ningest)},
+                {str(self.nsmall)},
+                {str(self.nnotfits)},
+                {str(self.nerror)},
+                '{self.maxttime}',
+                '{self.maxitime}'
+                )
+        ''')
         conn.commit()
         conn.close()
 
@@ -628,9 +819,11 @@ class db_filler:
     def update_main_html(self, gen3=False):
         file_count_table = 'FILE_COUNT'
         outfilename = f'{self.output_dir}/index.html'
+        modifier = ''
         if gen3:
             file_count_table += '_GEN3'
             outfilename = f'{self.output_dir}/index_gen3.html'
+            modifier = '_gen3'
         try:
             # Render table template after populating with query results
             with open(os.path.join(os.path.dirname(__file__), "main.tpl.html")) as f:
@@ -640,7 +833,12 @@ class db_filler:
                 html_head=html_head,
                 name=self.name,
                 nowstr=self.nowstr,
-                data=db_to_html(self.db, f'select * from {file_count_table} ORDER by Nite_Obs DESC',linkify=True),
+                data=db_to_html(
+                    self.db, 
+                    f'select * from {file_count_table} ORDER by Nite_Obs DESC',
+                    linkify=True,
+                    modifier=modifier
+                ),
                 gen3=gen3,
             )
             # log.debug(f'{html}')
@@ -651,7 +849,7 @@ class db_filler:
         with open(outfilename, 'w') as outf:
             outf.write(html)
 
-def main():
+async def main():
     config = get_config()
     num_days=countdays(config['num_days'], config['first_day'],config['last_day'])
     gen=config['gen']
@@ -678,6 +876,7 @@ def main():
     if gen == 3:
         db_lines.set_date(num_days)
         db_lines.count_files_gen3()    
+        await db_lines.get_creation_times()
         db_lines.update_db_gen3() 
         for num in range(num_days):
             db_lines.set_date(num)
@@ -685,4 +884,5 @@ def main():
             db_lines.update_nite_html(gen3=True)
         db_lines.update_main_html(gen3=True)
     os.remove(db_lines.lock)
-main()
+    
+asyncio.run(main())

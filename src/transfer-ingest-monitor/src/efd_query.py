@@ -10,14 +10,12 @@ cl = client.influx_client
 t2_agg = Time('2021-03-24T12:00:00', scale='tai')
 t1_agg = t2_agg - TimeDelta(15*24*3600, format='sec', scale='tai')
 
-t2_chunk = Time('2021-03-04T12:00:00', scale='tai')
-t1_chunk = Time('2021-02-04T12:00:00', scale='tai')
 
 def make_query_str(beg, end, interval):
     # query = f'''
     #         SELECT "expTime"
-    #         FROM "efd"."autogen"."lsst.sal.ATCamera.command_takeImages" 
-    #         WHERE time > '{beg.isot}Z' and time <= '{end.isot}Z' 
+    #         FROM "efd"."autogen"."lsst.sal.ATCamera.command_takeImages"
+    #         WHERE time > '{beg.isot}Z' and time <= '{end.isot}Z'
     #         '''
     query = f'''
             SELECT 
@@ -28,27 +26,29 @@ def make_query_str(beg, end, interval):
                 "private_rcvStamp",
                 "timestampAcquisitionStart",
                 "timestampEndOfReadout",
-                "timeStampEndOfReadout",
-                "timeStampAcquisitionStart",
-                "imageSource" 
+                "imageSource",
+                "imagesInSequence"
             FROM "efd"."autogen"."lsst.sal.ATCamera.logevent_endReadout" 
             WHERE time > '{beg.isot}Z' and time <= '{end.isot}Z' 
             '''
     print(query)
     return query
-    
+
+
 async def get_topics():
     topics = await client.get_topics()
     print(topics)
     return topics
-    
+
+
 async def query_topic(topic='lsst.sal.ATCamera.wreb'):
     t2 = Time('2020-03-16T12:00:00', scale='tai')
     t1 = t2 - TimeDelta(15*24*3600, format='sec', scale='tai')
     print('Querying EFD...')
     df = await client.select_time_series(topic, '*', t1, t2)
     print(df.head())
-    
+
+
 async def submit_query():
     result = await cl.query(make_query_str(t1_agg, t2_agg, '30m'))
     print(result)
@@ -60,7 +60,7 @@ async def submit_query():
         timestampEndOfReadout: {row['timestampEndOfReadout']} --> {datetime.fromtimestamp(row['timestampEndOfReadout']).strftime("%m-%d-%YT%H:%M:%S.%f %z")}
         ''')
     return result
-    
+
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     tasks = [
