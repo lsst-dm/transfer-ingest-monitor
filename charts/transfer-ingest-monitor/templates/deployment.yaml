@@ -51,8 +51,10 @@ spec:
         command: 
         - '/bin/bash' 
         - '-c'
-        - 'chown -R syncthing /srv/config'
+        - 'cp /tmp/syncthing-config/* /srv/config/ && chown -R syncthing /srv/config'
         volumeMounts:
+        - name: syncthing-config
+          mountPath: /tmp/syncthing-config
         - name: scratch
           mountPath: /srv/config
           subPath: syncthing
@@ -76,6 +78,9 @@ spec:
           mountPath: /srv/config
           subPath: syncthing
       volumes:
+      - name: syncthing-config
+        secret:
+          secretName: transfer-ingest-monitor-syncthing-config
       - name: scratch
         persistentVolumeClaim:
           claimName: nfs-scratch-pvc
