@@ -18,6 +18,9 @@ spec:
         emptyDir: {}
       - name: config
         emptyDir: {}
+      - name: syncthing-config
+        secret:
+          secretName: syncthing-config
       initContainers:
       - name: syncthing-init
         securityContext:
@@ -28,8 +31,10 @@ spec:
         command: 
         - '/bin/bash' 
         - '-c'
-        - 'chown -R syncthing /srv/config'
+        - 'cp /tmp/syncthing-config/* /srv/config/ && chown -R syncthing /srv/config'
         volumeMounts:
+        - name: syncthing-config
+          mountPath: /tmp/syncthing-config
         - name: config
           mountPath: /srv/config
       containers:
