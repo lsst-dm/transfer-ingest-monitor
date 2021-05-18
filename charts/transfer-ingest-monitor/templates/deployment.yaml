@@ -26,6 +26,7 @@ spec:
           mountPath: /usr/share/nginx/html
           subPath: webfiles
           readOnly: true
+{{ if not .Values.devMode }}
 ---
 kind: Deployment
 apiVersion: apps/v1
@@ -84,3 +85,4 @@ spec:
       - name: scratch
         persistentVolumeClaim:
           claimName: nfs-scratch-pvc
+{{ end }}
