@@ -50,7 +50,7 @@ spec:
               mountPath: "/var/run/secrets/pgpass"
             - name: webfiles
               mountPath: /home/worker/public_html
-              subPath: webfiles
+              subPath: {{ .Release.Name }}-webfiles
           containers:
           # Transfer and Ingest Monitor
           - name: transfer-ingest-monitor
@@ -85,7 +85,7 @@ spec:
               readOnly: true
             - name: webfiles
               mountPath: /home/worker/public_html
-              subPath: webfiles
+              subPath: {{ .Release.Name }}-webfiles
             lifecycle:
               postStart:
                 exec:
