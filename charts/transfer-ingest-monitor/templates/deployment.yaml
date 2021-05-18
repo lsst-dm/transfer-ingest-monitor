@@ -100,6 +100,8 @@ spec:
           value: "{{ .Values.db.name }}"
         - name: "PG_USERNAME"
           value: "{{ .Values.db.user }}"
+        - name: "WEB_BASE_PATH"
+          value: "{{ .Values.basePath }}"
         volumeMounts:
         - name: pgpass-secrets-dir
           mountPath: "/var/run/secrets/pgpass"

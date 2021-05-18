@@ -1,5 +1,5 @@
 # Output website files:
-WEBDIR=$HOME/public_html/transfer-ingest-monitor
+WEBDIR=$HOME/public_html/$WEB_BASE_PATH
 # Data source files:
 REPO=/lsstdata/offline/instrument
 REPO_NTS=/lsstdata/offline/teststand
