@@ -34,15 +34,17 @@ try:
     log.setLevel(os.environ['LOG_LEVEL'].upper())
 except:
     log.setLevel('WARNING')
-    
+
+
 def getnite(indate):
     if len(indate) == 8:
         if indate.isdigit():
             return indate[:4]+'-'+indate[4:6]+'-'+indate[6:8]
     if len(indate) == 10:
-        if  indate[:4].isdigit() & indate[5:7].isdigit() & indate[8:10].isdigit():
+        if indate[:4].isdigit() & indate[5:7].isdigit() & indate[8:10].isdigit():
             return indate[:4]+'-'+indate[5:7]+'-'+indate[8:10]
     return ''
+
 
 def findtable(data_dir):
     os.path.join(data_dir)
@@ -59,39 +61,43 @@ def findtable(data_dir):
     try:
         return table_directory_mapping[f'{Path(data_dir)}']
     except Exception as e:
-        log.error("Could not determine database for directory "+data_dir+". Exiting")
+        log.error(f"Could not determine database for directory {data_dir}. Exiting")
         sys.exit(1)
 
-def countdays(num_days, first_day,last_day):
+
+def countdays(num_days, first_day, last_day):
     if first_day is None:
        if num_days is not None:
           return num_days
        else:
           return 2
     else:
-       first_day_stamp=datetime(int(first_day[0:4]),int(first_day[4:6]),int(first_day[6:8]),0,tzinfo=timezone.utc).timestamp()
+       first_day_stamp = datetime(int(first_day[0:4]), int(first_day[4:6]), int(
+           first_day[6:8]), 0, tzinfo=timezone.utc).timestamp()
     if last_day is None:
-       last_day_stamp=(datetime.utcnow()).timestamp()
+       last_day_stamp = (datetime.utcnow()).timestamp()
     else:
-       last_day_stamp=datetime(int(last_day[0:4]),int(last_day[4:6]),int(last_day[6:8]),0,tzinfo=timezone.utc).timestamp()
+       last_day_stamp = datetime(int(last_day[0:4]), int(last_day[4:6]), int(last_day[6:8]), 0, tzinfo=timezone.utc).timestamp()
     if first_day_stamp > last_day_stamp:
        log.error("First day is after last day. Exiting.")
        sys.exit(1)
     return int((last_day_stamp-first_day_stamp)/3600/24+1)
 
 
-def findpath(file1,storage_dir):
+def findpath(file1, storage_dir):
     for file2 in glob.glob(storage_dir+'/*/*.fits'):
-      if samelink(file1,file2):
+      if samelink(file1, file2):
         return(file2)
     return 'None'
+
 
 def timetonite(time):
     return (datetime.utcfromtimestamp(time)-timedelta(hours=12)).strftime('%Y-%m-%d')
 
+
 def rec_listdir(dir):
-    output=[]
-    filelist=os.listdir(dir)
+    output = []
+    filelist = os.listdir(dir)
     for file in filelist:
         if os.path.isdir(dir+'/'+file):
            for file2 in os.listdir(dir+'/'+file):
@@ -102,6 +108,7 @@ def rec_listdir(dir):
               output.append(file)
     return sorted(output)
 
+
 def trimslash(DIRLIST):
     output = []
     for DIR in DIRLIST:
@@ -110,6 +117,7 @@ def trimslash(DIRLIST):
         else:
            output.append(DIR)
     return output
+
 
 def dirisnite(dir):
     if not dir[:4].isdigit():
@@ -125,11 +133,13 @@ def dirisnite(dir):
       if dir[4:6].isdigit():
         return True
     return False
-    
-def samelink(file1,file2):
+
+
+def samelink(file1, file2):
     s1 = os.stat(file1)
     s2 = os.stat(file2)
     return (s1.st_ino, s1.st_dev) == (s2.st_ino, s2.st_dev)
+
 
 def get_config():
     """Parse command line args, config file, environment variables to get configuration.
@@ -152,40 +162,44 @@ def get_config():
                help="Location of ingest log (will default to today's log.")
     parser.add('--output_dir', action='store', type=str, required=True,
                help='Path to output directory where DB and webpage will live')
-    parser.add('--search_links', action='store_true', 
+    parser.add('--search_links', action='store_true',
                help='Search repo for all links (for repos with nonstandard db format).')
     parser.add('--num_days', action='store', type=int, required=False,
                help='Number of days before the last date.')
     config = vars(parser.parse_args())
     return config
 
+
 class db_filler:
-    def __init__(self,input_dir,output_dir,ingest_log,last_day=[]):
-        self.now=datetime.utcnow()
-        self.nowstr=self.now.strftime('%Y-%m-%dT%H:%M:%S')
-        self.input_dir=input_dir
-        self.output_dir=output_dir
-        self.lock=output_dir+'/.monitor.lock'
-        self.name=output_dir.split('/')[-1]
+    def __init__(self, input_dir, output_dir, ingest_log, last_day=[]):
+        self.now = datetime.utcnow()
+        self.nowstr = self.now.strftime('%Y-%m-%dT%H:%M:%S')
+        self.input_dir = input_dir
+        self.output_dir = output_dir
+        self.lock = output_dir+'/.monitor.lock'
+        self.name = output_dir.split('/')[-1]
         if len(self.name) == 0:
-           self.name=output_dir.split('/')[-2]
+           self.name = output_dir.split('/')[-2]
         self.check_input_dir()
         self.check_output_dir()
         self.check_lock()
         if last_day is None:
-           self.last_day=self.now
+           self.last_day = self.now
         else:
-           self.last_day=datetime(int(last_day[0:4]),int(last_day[4:6]),int(last_day[6:8]),0,tzinfo=timezone.utc)
+           self.last_day = datetime(int(last_day[0:4]), int(
+               last_day[4:6]), int(last_day[6:8]), 0, tzinfo=timezone.utc)
         self.ingest_log = ingest_log
         self.image_data = []
+
     def db_conn(self):
-        params=config()
+        params = config()
         conn = psycopg2.connect(**params)
+
     def check_input_dir(self):
-        self.repo_dir=self.input_dir+'/gen2repo/'
-        self.raw_dir=self.repo_dir+'raw/'
-        self.repo=self.repo_dir+'registry.sqlite3'
-        self.storage=self.input_dir+'/storage/'
+        self.repo_dir = self.input_dir+'/gen2repo/'
+        self.raw_dir = self.repo_dir+'raw/'
+        self.repo = self.repo_dir+'registry.sqlite3'
+        self.storage = self.input_dir+'/storage/'
         if not os.path.exists(self.input_dir):
           log.error(self.input_dir+" does not exist. Exiting.")
           sys.exit(1)
@@ -197,9 +211,9 @@ class db_filler:
           sys.exit(1)
 
     def check_output_dir(self):
-        self.html=self.output_dir+'/index.html'
-        self.db=self.output_dir+'/observing_monitor.sqlite3'  
-        os.makedirs(self.output_dir,exist_ok=True)
+        self.html = self.output_dir+'/index.html'
+        self.db = self.output_dir+'/observing_monitor.sqlite3'
+        os.makedirs(self.output_dir, exist_ok=True)
         if not os.path.exists(self.output_dir):
           log.error("You do not have access to "+self.output_dir+". Exiting.")
           sys.exit(1)
@@ -328,7 +342,7 @@ class db_filler:
 
         def make_query_str(start_time):
             # query = f'''
-            #         SELECT 
+            #         SELECT
             #             "imageName",
             #             "imageDate",
             #             "imageIndex",
@@ -336,7 +350,7 @@ class db_filler:
             #             "timestampEndOfReadout",
             #             "imageSource",
             #             "imagesInSequence"
-            #         FROM "efd"."autogen"."lsst.sal.ATCamera.logevent_endReadout" 
+            #         FROM "efd"."autogen"."lsst.sal.ATCamera.logevent_endReadout"
             #         WHERE time >= '{start_time.isot}Z'
             #         '''
             query = f'''
@@ -353,7 +367,7 @@ class db_filler:
                     '''
             # log.debug(query)
             return query
-            
+
         async def submit_query():
             result = await cl.query(make_query_str(nite_time))
             # log.debug(result)
@@ -388,23 +402,23 @@ class db_filler:
                         log.error(f'Error displaying row: {row}. Error message: {str(e)}')
             self.image_data = image_data
             return image_data
-        
+
         # loop = asyncio.get_event_loop()
         # tasks = [
         #     loop.create_task(submit_query()),
         # ]
         # loop.run_until_complete(asyncio.wait(tasks))
         # loop.close()
-        
+
         return await submit_query()
-        
+
     def count_files_gen3(self):
-        table=findtable(self.input_dir)
+        table = findtable(self.input_dir)
         if table.startswith('obs_comcam_ccs'):
             file_events_table = 'obs_comcam_ccs_o_gen3_file_events'
         else:
             file_events_table = f'{table}gen3_file_events'
-        query=f'''
+        query = f'''
         set TIMEZONE='UTC'; 
         WITH 
             ne AS (
@@ -454,57 +468,67 @@ class db_filler:
             'db': os.environ['PG_DATABASE'],
         }
         engine = sqlalchemy.create_engine(f'''postgresql://{db['user']}@{db['host']}:{db['port']}/{db['db']}''')
-        df=pd.read_sql(query, engine)
-        self.paths=np.array(df['path'])
-        self.filenames=np.array(df['filename'])
-        self.ids=np.array(df['id'],dtype=int)
-        self.nites=np.array(len(df)*['0000-00-00'])
-        self.statuss=np.array(df['status'])
-        self.ctimes=np.array(len(df)*['0000-00-00T00:00:00.00'])
-        self.ttimes=np.array(df['ttime'])
-        self.itimes=np.array(df['itime'])
-        self.filesizes=np.zeros(len(df),dtype=int)
-        self.err_messages=np.array(df['err_message'])
-        self.err_messages[self.err_messages==None]=''
+        df = pd.read_sql(query, engine)
+        self.paths = np.array(df['path'])
+        self.filenames = np.array(df['filename'])
+        self.ids = np.array(df['id'], dtype=int)
+        self.nites = np.array(len(df)*['0000-00-00'])
+        self.statuss = np.array(df['status'])
+        self.ctimes = np.array(len(df)*['0000-00-00T00:00:00.00'])
+        self.ttimes = np.array(df['ttime'])
+        self.itimes = np.array(df['itime'])
+        self.filesizes = np.zeros(len(df), dtype=int)
+        self.err_messages = np.array(df['err_message'])
+        self.err_messages[self.err_messages == None] = ''
         for num in range(len(df)):
             FULLPATH = self.storage+self.paths[num]
-            self.ttimes[num] = self.ttimes[num].replace(' ','T')
-            self.itimes[num] = self.itimes[num].replace(' ','T')
-            self.nites[num] = (datetime.strptime(self.ttimes[num],'%Y-%m-%dT%H:%M:%S.%f')-timedelta(hours=12)).strftime('%Y-%m-%d')
+            self.ttimes[num] = self.ttimes[num].replace(' ', 'T')
+            self.itimes[num] = self.itimes[num].replace(' ', 'T')
+            self.nites[num] = (datetime.strptime(self.ttimes[num], '%Y-%m-%dT%H:%M:%S.%f')-timedelta(hours=12)).strftime('%Y-%m-%d')
             if os.path.exists(FULLPATH):
-               self.filesizes[num]=(os.stat(FULLPATH).st_size)
-               self.ctimes[num]=datetime.utcfromtimestamp(os.lstat(FULLPATH).st_ctime).strftime('%Y-%m-%dT%H:%M:%S.%f')
+               self.filesizes[num] = (os.stat(FULLPATH).st_size)
+               self.ctimes[num] = datetime.utcfromtimestamp(os.lstat(FULLPATH).st_ctime).strftime('%Y-%m-%dT%H:%M:%S.%f')
                if self.ctimes[num] < self.ttimes[num]:
-                   self.nites[num]=(datetime.strptime(self.ctimes[num],'%Y-%m-%dT%H:%M:%S.%f')-timedelta(hours=12)).strftime('%Y-%m-%d')
+                   self.nites[num] = (datetime.strptime(self.ctimes[num], '%Y-%m-%dT%H:%M:%S.%f')-timedelta(hours=12)).strftime('%Y-%m-%d')
             else:
                log.debug(FULLPATH+" not found.")
             nite = getnite(self.paths[num].split('/')[0])
             if nite != '':
-               self.nites[num] = nite 
-  
-    def count_links(self):    
-        self.ltimes=[]
-        self.ltimestrs=[]
-        self.ltimetttt=[]
-        self.lpaths=[]
-        self.ldevs=[]
-        self.linos=[]
-        self.lfilepaths=[]
-        self.lnites=[]
-        self.nlinks=0
+               self.nites[num] = nite
+
+    def count_links(self):
+        self.ltimes = []
+        self.ltimestrs = []
+        self.ltimetttt = []
+        self.lpaths = []
+        self.ldevs = []
+        self.linos = []
+        self.lfilepaths = []
+        self.lnites = []
+        self.nlinks = 0
         conn = sqlite3.connect(self.repo)
         c = conn.cursor()
-        query='PRAGMA table_info(raw)'
+        query = 'PRAGMA table_info(raw)'
         c.execute(query)
-        columns= [element[1].lower() for element in c.fetchall()]
-# Does this table have raftname (BOT, comcam) or not (auxtel)?
-        if 'raftname' in columns:        
-           query="select dayObs||'/'||expId||'/'||expid||'-'|| raftname ||'-'|| detectorName||'-det'||printf('%03d', detector)||'.fits' as FILENAME  from raw where dayObs = '"+self.nite+"' order by FILENAME"
+        columns = [element[1].lower() for element in c.fetchall()]
+        # Does this table have raftname (BOT, comcam) or not (auxtel)?
+        if 'raftname' in columns:
+            select_statement = f"""
+                dayObs||'/'||expId||'/'||expid||'-'|| raftname ||'-'|| detectorName||'-det'||printf('%03d', detector)||'.fits'
+            """
         else:
-           query="select dayObs||'/'||expid||'-det'||printf('%03d', detector)||'.fits' as FILENAME from raw where dayObs = '"+self.nite+"' order by FILENAME"
-           
+            select_statement = f"""
+                dayObs||'/'||expid||'-det'||printf('%03d', detector)||'.fits'
+            """
+        query = f"""
+            SELECT {select_statement} as FILENAME  
+            FROM raw 
+            WHERE dayObs = '{self.nite}' 
+            ORDER by FILENAME
+        """
+
         c.execute(query)
-        rows=c.fetchall()
+        rows = c.fetchall()
         conn.close()
         for FILENAME in [row[0] for row in rows]:
             FULLPATH = self.raw_dir+FILENAME
@@ -512,15 +536,15 @@ class db_filler:
                 self.ltimes.append(os.lstat(FULLPATH).st_atime)
                 self.ltimestrs.append(datetime.utcfromtimestamp(self.ltimes[-1]).strftime('%Y-%m-%dT%H:%M:%S'))
                 self.lpaths.append('raw/'+FILENAME)
-                STAT=os.stat(FULLPATH)
+                STAT = os.stat(FULLPATH)
                 self.ldevs.append(STAT.st_dev)
                 self.linos.append(STAT.st_ino)
                 if os.path.islink(FULLPATH):
-                    FILEPATH=os.readlink(FULLPATH)
+                    FILEPATH = os.readlink(FULLPATH)
                     self.lfilepaths.append(FILEPATH.split('storage/')[-1])
                 else:
-# Slow findpath replaced once we started writing down FILENUM (st_dev, st_iso combos) 
-#                    FILEPATH=findpath(FULLPATH,self.storage)
+                    # Slow findpath replaced once we started writing down FILENUM (st_dev, st_iso combos)
+                    #                    FILEPATH=findpath(FULLPATH,self.storage)
                     self.lfilepaths.append('NONE')
                 self.lnites.append(self.nite)
                 self.nlinks += 1
@@ -528,33 +552,33 @@ class db_filler:
                 log.warning(FULLPATH+' does not exist.')
         log.debug(str(self.nlinks)+" found.")
 
-    def count_links_search(self,DIRLIST=[]):
-        self.ltimes=[]
-        self.ltimestrs=[]
-        self.lpaths=[]
-        self.ldevs=[]
-        self.linos=[]
-        self.lfilepaths=[]
-        self.lnites=[]
-        self.nlinks=0
-        REPODIRS =  ['raw/']
+    def count_links_search(self, DIRLIST=[]):
+        self.ltimes = []
+        self.ltimestrs = []
+        self.lpaths = []
+        self.ldevs = []
+        self.linos = []
+        self.lfilepaths = []
+        self.lnites = []
+        self.nlinks = 0
+        REPODIRS = ['raw/']
         if DIRLIST == []:
            DIRLIST = [REPODIR+self.nite for REPODIR in REPODIRS]
         for DIR in trimslash(DIRLIST):
-            NITEDIR=self.repo_dir+DIR
+            NITEDIR = self.repo_dir+DIR
             if os.path.exists(NITEDIR):
                 for FILE in sorted(rec_listdir(NITEDIR)):
-                    FULLPATH=NITEDIR+'/'+FILE
+                    FULLPATH = NITEDIR+'/'+FILE
                     self.ltimes.append(os.lstat(FULLPATH).st_atime)
-                    STAT=os.stat(FULLPATH)
+                    STAT = os.stat(FULLPATH)
                     self.ldevs.append(STAT.st_dev)
                     self.linos.append(STAT.st_ino)
                     self.ltimestrs.append(datetime.utcfromtimestamp(self.ltimes[-1]).strftime('%Y-%m-%dT%H:%M:%S'))
                     self.lpaths.append(DIR+'/'+FILE)
                     if os.path.islink(FULLPATH):
-                        FILEPATH=os.readlink(FULLPATH)
+                        FILEPATH = os.readlink(FULLPATH)
                     else:
-                        FILEPATH=findpath(FULLPATH,self.storage)
+                        FILEPATH = findpath(FULLPATH, self.storage)
                     self.lfilepaths.append(FILEPATH.split('storage/')[-1])
                     if dirisnite(DIR.split('/')[-1]):
                         self.lnites.append(self.nite)
@@ -564,12 +588,11 @@ class db_filler:
             else:
                 log.warning("Warning: "+NITEDIR+" does not exist.")
 
-
     def scan_log(self):
         if self.ingest_log is None:
            log.info("No ingest log. Not checking for ingestion errors.")
            return None
-        if not os.path.exists(self.ingest_log): 
+        if not os.path.exists(self.ingest_log):
            log.info("No ingest log. Not checking for ingestion errors.")
            return None
 
@@ -597,7 +620,7 @@ class db_filler:
         conn.commit()
         conn.close()
         if len(self.filenames) > 0:
-             log.info("Inserted or replaced "+str(len(self.filenames))+" into TRANSFER_LIST.")
+            log.info(f"Inserted or replaced {len(self.filenames)} into TRANSFER_LIST.")
 
     def update_db_gen3(self):
         conn = sqlite3.connect(self.db)
@@ -610,7 +633,7 @@ class db_filler:
             else:
                 created_time = self.ctimes[num]
             # log.debug(f'Created time: {created_time}')
-            query=f'''
+            query = f'''
                 INSERT OR REPLACE INTO FILE_LIST_GEN3 (
                     Filenum, 
                     Nite, 
@@ -651,7 +674,7 @@ class db_filler:
         conn.commit()
         conn.close()
         if len(self.ids) > 0:
-             log.info("Inserted or replaced "+str(len(self.ids))+" into FILE_LIST_GEN3.")
+            log.info(f"Inserted or replaced {len(self.ids)} into FILE_LIST_GEN3.")
 
     def update_db_links(self):
         conn = sqlite3.connect(self.db)
@@ -671,16 +694,16 @@ class db_filler:
                     '{self.nowstr}', 
                     '{self.ltimestrs[num]}'
                 )
-            ''') 
+            ''')
         conn.commit()
         conn.close()
         if len(self.lpaths) > 0:
-             log.info("Inserted or replaced "+str(len(self.lpaths))+" into INGEST_LIST.")
-    
+            log.info(f"Inserted or replaced {len(self.lpaths)} into INGEST_LIST.")
+
     def get_night_data_gen3(self):
         conn = sqlite3.connect(self.db)
         c = conn.cursor()
-        sizemin='10000'
+        sizemin = '10000'
         c.execute(f'''
             SELECT 
                 count(Transfer_Path),
@@ -699,11 +722,11 @@ class db_filler:
             WHERE Nite = "{self.nite}" 
             GROUP BY Nite
         ''')
-        rows=c.fetchall()
+        rows = c.fetchall()
         if len(rows) > 0:
-            [self.ntransfer, self.maxctime, self.ningest, self.maxttime, self.maxitime, self.nnotfits, self.nsmall, self.nerror]=rows[0]
+            [self.ntransfer, self.maxctime, self.ningest, self.maxttime, self.maxitime, self.nnotfits, self.nsmall, self.nerror] = rows[0]
         else:
-            [self.ntransfer, self.maxctime, self.ningest, self.maxttime, self.maxitime, self.nnotfits, self.nsmall, self.nerror]=[0, '0000-00-00T00:00:00', 0, '0000-00-00T00:00:00','0000-00-00T00:00:00', 0, 0, 0 ]
+            [self.ntransfer, self.maxctime, self.ningest, self.maxttime, self.maxitime, self.nnotfits, self.nsmall, self.nerror] = [0, '0000-00-00T00:00:00', 0, '0000-00-00T00:00:00', '0000-00-00T00:00:00', 0, 0, 0]
         c.execute(f'''
             INSERT OR REPLACE INTO FILE_COUNT_GEN3 (
                 Nite_Obs,
@@ -736,32 +759,61 @@ class db_filler:
         conn = sqlite3.connect(self.db)
         c = conn.cursor()
         c.execute('select count(Ingest_Path), max(Creation_Time), max(Ingest_Time) from INGEST_LIST i, TRANSFER_LIST t where i.FILENUM = t.FILENUM and Nite_Obs = "'+self.nite+'" group by Nite_Obs')
-        rows=c.fetchall()
+        rows = c.fetchall()
         if len(rows) > 0:
-            [self.ningest,self.maxttime,self.maxitime,]=rows[0]
+            [self.ningest, self.maxttime, self.maxitime, ] = rows[0]
         else:
-            [self.ningest,self.maxttime,self.maxitime]=[0,'0000-00-00T00:00:00','0000-00-00T00:00:00' ]
-        sizemin='10000'
-        c.execute('select count(FILENUM), max(Creation_Time), sum(File_Size < '+sizemin+'), sum(substr(Transfer_Path,-5) != ".fits"),  sum((substr(Transfer_Path,-5) == ".fits")*(File_Size > '+sizemin+')) from TRANSFER_LIST where FILENUM not in (select FILENUM from INGEST_LIST) and Nite_Trans = "'+self.nite+'" group by Nite_Trans')
-        rows=c.fetchall()
+            [self.ningest, self.maxttime, self.maxitime] = [0, '0000-00-00T00:00:00', '0000-00-00T00:00:00']
+        sizemin = '10000'
+        c.execute(f'''
+            SELECT 
+                count(FILENUM), 
+                max(Creation_Time), 
+                sum(File_Size < '+sizemin+'), 
+                sum(substr(Transfer_Path,-5) != ".fits"), 
+                sum((substr(Transfer_Path,-5) == ".fits")*(File_Size > {sizemin})) 
+            FROM TRANSFER_LIST 
+            WHERE FILENUM not in (select FILENUM from INGEST_LIST) and Nite_Trans = "{self.nite}" 
+            GROUP BY Nite_Trans
+        ''')
+        rows = c.fetchall()
         if len(rows) > 0:
-            [ntransfer_unmatched, maxttime, self.nsmall,self.nnotfits,self.nerror] = rows[0]
-            self.ntransfer=self.ningest+ntransfer_unmatched
-            self.maxttime=max(self.maxttime,maxttime)
+            [ntransfer_unmatched, maxttime, self.nsmall, self.nnotfits, self.nerror] = rows[0]
+            self.ntransfer = self.ningest+ntransfer_unmatched
+            self.maxttime = max(self.maxttime, maxttime)
         else:
-            self.ntransfer=self.ningest
-            [self.nsmall,self.nnotfits,self.nerror]=[0,0,0]
-        c.execute("INSERT OR REPLACE INTO FILE_COUNT (Nite_Obs, Last_Update, N_Files, Last_Creation, N_Ingest, N_Small, N_Not_Fits, N_Error, Last_Ingest) VALUES('"+self.nite+"', '"+self.nowstr+"', "+str(self.ntransfer)+", '"+self.maxttime+"', "+str(self.ningest)+", "+str(self.nsmall)+", "+str(self.nnotfits)+", "+str(self.nerror)+", '"+self.maxitime+"')")
+            self.ntransfer = self.ningest
+            [self.nsmall, self.nnotfits, self.nerror] = [0, 0, 0]
+        c.execute(f"""
+            INSERT OR REPLACE INTO FILE_COUNT (
+                Nite_Obs, 
+                Last_Update, N_Files,
+                Last_Creation,
+                N_Ingest,
+                N_Small,
+                N_Not_Fits,
+                N_Error,
+                Last_Ingest
+            ) VALUES(
+                '{self.nite}', 
+                '{self.nowstr}', 
+                {str(self.ntransfer)}, 
+                '{self.maxttime}', 
+                {str(self.ningest)}, 
+                {str(self.nsmall)}, 
+                {str(self.nnotfits)}, 
+                {str(self.nerror)}, 
+                '{self.maxitime}'
+            )
+        """)
         conn.commit()
         conn.close()
-
 
     def update_nite_html(self, gen3=False):
         if gen3:
             outfilename = f'{self.output_dir}/{self.nite}.html'
-            data = db_to_html(self.db, [
-            f'''
-                select 
+            data = db_to_html(self.db, [f'''
+                SELECT 
                     Transfer_Path, 
                     Status, 
                     File_Size,
@@ -771,40 +823,40 @@ class db_filler:
                     printf("%.1f",(julianday(Transfer_Time)-julianday(Creation_Time))*24*3600.) as Delta_Time_1,
                     printf("%.1f",(julianday(Ingest_Time)-julianday(Transfer_Time))*24*3600.) as Delta_Time_2,
                     Err_Message 
-                from FILE_LIST_GEN3 
-                where Nite = "{self.nite}" 
+                FROM FILE_LIST_GEN3 
+                WHERE Nite = "{self.nite}" 
                 ORDER BY Creation_Time
             '''
             ])
         else:
             outfilename = f'{self.output_dir}/{self.nite}_gen2.html'
             data = db_to_html(self.db, [
-            f'''
-                select 
+                f'''
+                SELECT 
                     Transfer_Path,
                     File_Size,
                     Creation_Time,
                     "None" as Ingest_Path,
                     "None" as Ingest_Time,
                     0.0 as Delta_Time
-                from TRANSFER_LIST 
-                where 
+                FROM TRANSFER_LIST 
+                WHERE 
                     FILENUM not in (select FILENUM from Ingest_list) and 
                     Nite_Trans = "{self.nite}" 
                 ORDER BY Creation_Time
             ''',
-            f'''
-                select 
+                f'''
+                SELECT 
                     Transfer_Path,
                     File_Size,
                     Creation_Time,
                     Ingest_Path,
                     Ingest_Time,
                     printf("%.1f",(julianday(Ingest_Time)-julianday(Creation_Time))*24*3600.) as Delta_Time 
-                from 
+                FROM 
                     Ingest_List i,
                     Transfer_List t 
-                where 
+                WHERE 
                     i.FILENUM = t.FILENUM and Nite_Obs = "{self.nite}" 
                 ORDER BY Creation_time
             '''
@@ -850,7 +902,7 @@ class db_filler:
                 name=self.name,
                 nowstr=self.nowstr,
                 data=db_to_html(
-                    self.db, 
+                    self.db,
                     f'select * from {file_count_table} ORDER by Nite_Obs DESC',
                     linkify=True,
                     modifier=modifier
@@ -865,14 +917,15 @@ class db_filler:
         with open(outfilename, 'w') as outf:
             outf.write(html)
 
+
 async def main():
     config = get_config()
-    num_days=countdays(config['num_days'], config['first_day'],config['last_day'])
-    gen=config['gen']
-    if (gen != 2) and ( gen != 3):
+    num_days = countdays(config['num_days'], config['first_day'], config['last_day'])
+    gen = config['gen']
+    if (gen != 2) and (gen != 3):
         log.error("'gen' variable must be either 2 or 3. Exiting.")
-        sys.exit(1)    
-    db_lines=db_filler(config['input_dir'],config['output_dir'],config['ingest_log'],config['last_day'])
+        sys.exit(1)
+    db_lines = db_filler(config['input_dir'], config['output_dir'], config['ingest_log'], config['last_day'])
 
     if gen == 2:
         for num in range(num_days):
@@ -887,18 +940,18 @@ async def main():
         for num in range(num_days):
             db_lines.set_date(num)
             db_lines.get_night_data()
-            db_lines.update_nite_html() 
+            db_lines.update_nite_html()
         db_lines.update_main_html()
     if gen == 3:
         db_lines.set_date(num_days)
-        db_lines.count_files_gen3()    
+        db_lines.count_files_gen3()
         await db_lines.get_creation_times()
-        db_lines.update_db_gen3() 
+        db_lines.update_db_gen3()
         for num in range(num_days):
             db_lines.set_date(num)
             db_lines.get_night_data_gen3()
             db_lines.update_nite_html(gen3=True)
         db_lines.update_main_html(gen3=True)
     os.remove(db_lines.lock)
-    
+
 asyncio.run(main())
