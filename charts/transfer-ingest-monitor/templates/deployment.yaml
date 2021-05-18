@@ -24,7 +24,7 @@ spec:
         volumeMounts:
         - name: webfiles
           mountPath: /usr/share/nginx/html
-          subPath: webfiles
+          subPath: {{ .Release.Name }}-webfiles
           readOnly: true
 {{- if .Values.devMode }}
 ---
