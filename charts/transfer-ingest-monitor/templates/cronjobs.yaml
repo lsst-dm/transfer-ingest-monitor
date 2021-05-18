@@ -4,7 +4,12 @@ kind: CronJob
 metadata:
   name: {{ .Release.Name }}-cron
 spec:
+  {{- if .Values.devMode }}
+  # Effectively disable the cronjob by scheduling on a non-existent calendar day
+  schedule: "* * 31 2 *"
+  {{- else }}
   schedule: "{{ .Values.cronjob.schedule }}"
+  {{- end }}
   jobTemplate:
     spec:
       backoffLimit: 0
