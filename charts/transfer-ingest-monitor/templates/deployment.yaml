@@ -2,16 +2,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: transfer-ingest-monitor-nginx
+  name: {{ .Release.Name }}-nginx
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: transfer-ingest-monitor-nginx
+      app: {{ .Release.Name }}-nginx
   template:
     metadata:
       labels:
-        app: transfer-ingest-monitor-nginx
+        app: {{ .Release.Name }}-nginx
     spec:
       volumes:
       - name: webfiles
@@ -30,16 +30,16 @@ spec:
 kind: Deployment
 apiVersion: apps/v1
 metadata:
-  name: transfer-ingest-monitor-syncthing
+  name: {{ .Release.Name }}-syncthing
 spec:
   selector:
     matchLabels:
-      app: transfer-ingest-monitor-syncthing
+      app: {{ .Release.Name }}-syncthing
   replicas: 1
   template:
     metadata:
       labels:
-        app: transfer-ingest-monitor-syncthing
+        app: {{ .Release.Name }}-syncthing
     spec:
       initContainers:
       - name: syncthing-init
@@ -80,7 +80,7 @@ spec:
       volumes:
       - name: syncthing-config
         secret:
-          secretName: transfer-ingest-monitor-syncthing-config
+          secretName: {{ .Release.Name }}-syncthing-config
       - name: scratch
         persistentVolumeClaim:
           claimName: nfs-scratch-pvc

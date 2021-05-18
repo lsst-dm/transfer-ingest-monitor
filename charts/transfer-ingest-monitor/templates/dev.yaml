@@ -3,16 +3,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: transfer-ingest-monitor
+  name: {{ .Release.Name }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: transfer-ingest-monitor
+      app: {{ .Release.Name }}
   template:
     metadata:
       labels:
-        app: transfer-ingest-monitor
+        app: {{ .Release.Name }}
     spec:
       volumes:
       - name: pgpass

@@ -2,9 +2,9 @@
 apiVersion: batch/v1beta1
 kind: CronJob
 metadata:
-  name: transfer-ingest-monitor-cron
+  name: {{ .Release.Name }}-cron
 spec:
-  schedule: "*/5 * * * *"
+  schedule: {{ .Values.cronjob.schedule }}
   jobTemplate:
     spec:
       backoffLimit: 0
