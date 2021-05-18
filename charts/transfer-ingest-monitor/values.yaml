@@ -3,7 +3,7 @@ hostname: lsst-lsp-int.ncsa.illinois.edu
 basePath: /transfer-ingest-monitor
 image:
   repository: lsstdm/transfer-ingest-monitor
-  tag: v3
+  tag: v4
 monitorNumDays: 10
 db:
   host: lsst-pg-prod1.ncsa.illinois.edu
