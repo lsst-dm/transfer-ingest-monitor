@@ -40,15 +40,16 @@ for indir in sys.argv[2:]:
         if indir[0] != '/':
             indir = f'{outdir}/{indir}'
         db = f'{indir}/observing_monitor.sqlite3'
-        streams.append({
-            'name': indir.split('/')[-1],
-            'link': indir.split('/')[-1],
-            'data_table': db_to_html(db, f'select * from FILE_COUNT where Nite_Obs >= "{firstnite}" order by Nite_Obs DESC',linkify=True,prefix=f'''{indir.split('/')[-1]}/'''),
-        })
-        if os.path.exists(f'{indir}/index_gen3.html'):
+        if os.path.exists(f'{indir}/index_gen2.html'):
             streams.append({
-                'name': f'''{indir.split('/')[-1]} Gen 3''',
-                'link': f'''{indir.split('/')[-1]}/index_gen3.html''',
+                'name': f'''{indir.split('/')[-1]} Gen 2''',
+                'link': f'''{indir.split('/')[-1]}/index_gen2.html''',
+                'data_table': db_to_html(db, f'select * from FILE_COUNT where Nite_Obs >= "{firstnite}" order by Nite_Obs DESC',linkify=True,prefix=f'''{indir.split('/')[-1]}/'''),
+            })
+        if os.path.exists(f'{indir}/index.html'):
+            streams.append({
+                'name': f'''{indir.split('/')[-1]}''',
+                'link': f'''{indir.split('/')[-1]}''',
                 'data_table': db_to_html(db, f'select * from FILE_COUNT_GEN3 where Nite_Obs >= "{firstnite}" order by Nite_Obs DESC',linkify=True,prefix=f'''{indir.split('/')[-1]}/'''),
             })
     except Exception as e:

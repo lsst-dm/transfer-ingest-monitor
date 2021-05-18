@@ -33,7 +33,7 @@ log.addHandler(handler)
 try:
     log.setLevel(os.environ['LOG_LEVEL'].upper())
 except:
-    log.setLevel('DEBUG')
+    log.setLevel('WARNING')
     
 def getnite(indate):
     if len(indate) == 8:
@@ -399,7 +399,11 @@ class db_filler:
         return await submit_query()
         
     def count_files_gen3(self):
-        table=findtable(self.input_dir) 
+        table=findtable(self.input_dir)
+        if table.startswith('obs_comcam_ccs'):
+            file_events_table = 'obs_comcam_ccs_o_gen3_file_events'
+        else:
+            file_events_table = f'{table}gen3_file_events'
         query=f'''
         set TIMEZONE='UTC'; 
         WITH 
@@ -414,7 +418,7 @@ class db_filler:
                     err_message 
                 FROM 
                     {table}files, 
-                    {table}gen3_file_events 
+                    {file_events_table}
                 WHERE 
                     files_id = id 
                     AND 
@@ -619,19 +623,31 @@ class db_filler:
                     File_Size, 
                     Err_Message
                 ) VALUES(
-                    {str(self.ids[num])}, 
-                    '{self.nites[num]}', 
-                    '{self.nowstr}', 
-                    '{self.paths[num]}', 
-                    '{self.statuss[num]}', 
-                    '{created_time}', 
-                    '{self.ttimes[num]}', 
-                    '{self.itimes[num]}', 
-                    {str(self.filesizes[num])}, 
-                    '{self.err_messages[num]}'
+                    :ids,
+                    :nites,
+                    :now,
+                    :paths,
+                    :statuss,
+                    :created_time,
+                    :ttimes,
+                    :itimes,
+                    :filesizes, 
+                    :errmsg
                 )
                 '''
-            c.execute(query)
+            log.debug(f'Query:\n{query}')
+            c.execute(query, {
+                'ids': str(self.ids[num]),
+                'nites': self.nites[num],
+                'now': self.nowstr,
+                'paths': self.paths[num],
+                'statuss': self.statuss[num],
+                'created_time': created_time,
+                'ttimes': self.ttimes[num],
+                'itimes': self.itimes[num],
+                'filesizes': str(self.filesizes[num]),
+                'errmsg': self.err_messages[num],
+            })
         conn.commit()
         conn.close()
         if len(self.ids) > 0:
@@ -742,7 +758,7 @@ class db_filler:
 
     def update_nite_html(self, gen3=False):
         if gen3:
-            outfilename = f'{self.output_dir}/{self.nite}_gen3.html'
+            outfilename = f'{self.output_dir}/{self.nite}.html'
             data = db_to_html(self.db, [
             f'''
                 select 
@@ -761,7 +777,7 @@ class db_filler:
             '''
             ])
         else:
-            outfilename = f'{self.output_dir}/{self.nite}.html'
+            outfilename = f'{self.output_dir}/{self.nite}_gen2.html'
             data = db_to_html(self.db, [
             f'''
                 select 
@@ -818,12 +834,12 @@ class db_filler:
 
     def update_main_html(self, gen3=False):
         file_count_table = 'FILE_COUNT'
-        outfilename = f'{self.output_dir}/index.html'
-        modifier = ''
+        outfilename = f'{self.output_dir}/index_gen2.html'
+        modifier = '_gen2'
         if gen3:
             file_count_table += '_GEN3'
-            outfilename = f'{self.output_dir}/index_gen3.html'
-            modifier = '_gen3'
+            outfilename = f'{self.output_dir}/index.html'
+            modifier = ''
         try:
             # Render table template after populating with query results
             with open(os.path.join(os.path.dirname(__file__), "main.tpl.html")) as f:
