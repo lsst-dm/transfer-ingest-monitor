@@ -10,6 +10,7 @@ spec:
   {{- else }}
   schedule: "{{ .Values.cronjob.schedule }}"
   {{- end }}
+  concurrencyPolicy: Replace
   jobTemplate:
     spec:
       backoffLimit: 0
