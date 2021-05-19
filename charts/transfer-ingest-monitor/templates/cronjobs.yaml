@@ -35,7 +35,11 @@ spec:
           initContainers:
           - name: init
             image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
-            imagePullPolicy: IfNotPresent
+            {{- if or (eq .Values.image.tag "latest") (eq .Values.image.tag "dev")}}
+            imagePullPolicy: Always
+            {{- else }}
+            imagePullPolicy: {{ .Values.image.imagePullPolicy }}
+            {{- end }}
             securityContext:
               runAsUser: 0
               runAsGroup: 0
@@ -56,7 +60,11 @@ spec:
           # Transfer and Ingest Monitor
           - name: transfer-ingest-monitor
             image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
-            imagePullPolicy: IfNotPresent
+            {{- if or (eq .Values.image.tag "latest") (eq .Values.image.tag "dev")}}
+            imagePullPolicy: Always
+            {{- else }}
+            imagePullPolicy: {{ .Values.image.imagePullPolicy }}
+            {{- end }}
             securityContext:
               runAsUser: 1000
               runAsGroup: 1000

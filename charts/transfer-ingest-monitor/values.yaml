@@ -4,6 +4,7 @@ basePath: /transfer-ingest-monitor
 image:
   repository: lsstdm/transfer-ingest-monitor
   tag: v4
+  imagePullPolicy: IfNotPresent
 monitorNumDays: 10
 db:
   host: lsst-pg-prod1.ncsa.illinois.edu
