@@ -93,6 +93,8 @@ spec:
         - -c
         - sleep 1000d
         env:
+        - name: "LOG_LEVEL"
+          value: "{{ .Values.logLevel }}"
         - name: "MONITOR_NUM_DAYS"
           value: "{{ .Values.monitorNumDays }}"
         - name: "PG_HOST"

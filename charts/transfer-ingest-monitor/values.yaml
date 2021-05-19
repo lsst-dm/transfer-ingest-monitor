@@ -1,3 +1,4 @@
+logLevel: "WARNING"
 hostname: lsst-lsp-int.ncsa.illinois.edu
 # Include leading forward slash in basePath
 basePath: /transfer-ingest-monitor

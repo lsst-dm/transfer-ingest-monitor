@@ -19,6 +19,7 @@ from styles import html_head
 import logging
 from pathlib import Path
 import re
+import yaml
 
 from astropy.time import Time, TimeDelta
 from lsst_efd_client import EfdClient
@@ -44,25 +45,6 @@ def getnite(indate):
         if indate[:4].isdigit() & indate[5:7].isdigit() & indate[8:10].isdigit():
             return indate[:4]+'-'+indate[5:7]+'-'+indate[8:10]
     return ''
-
-
-def findtable(data_dir):
-    os.path.join(data_dir)
-    table_directory_mapping = {
-        f'{Path("/lsstdata/offline/instrument/LATISS")}': 'obs_auxtel_arc_',
-        f'{Path("/lsstdata/offline/instrument/LATISS-ccs")}': 'obs_auxtel_ccs_',
-        f'{Path("/lsstdata/offline/instrument/LSSTComCam")}': 'obs_comcam_arc_',
-        f'{Path("/lsstdata/offline/instrument/LSSTComCam-ccs")}': 'obs_comcam_ccs_',
-        f'{Path("/lsstdata/offline/instrument/LSSTCam-bot")}': 'slac_bot_',
-        f'{Path("/lsstdata/offline/teststand/NCSA_auxTel")}': 'nts_auxtel_',
-        f'{Path("/lsstdata/offline/teststand/NCSA_comcam")}': 'nts_comcam_',
-    }
-    # log.debug(f'table_directory_mapping: {table_directory_mapping}')
-    try:
-        return table_directory_mapping[f'{Path(data_dir)}']
-    except Exception as e:
-        log.error(f"Could not determine database for directory {data_dir}. Exiting")
-        sys.exit(1)
 
 
 def countdays(num_days, first_day, last_day):
@@ -150,8 +132,8 @@ def get_config():
     """
     parser = configargparse.ArgParser(config_file_parser_class=configargparse.YAMLConfigFileParser,
                                       auto_env_var_prefix="RSYMON_")
-    parser.add('--input_dir', action='store', type=str, required=True,
-               help='Path to input directory at NCSA. Must include storage and gen2repo subdirectories')
+    # parser.add('--input_dir', action='store', type=str, required=True,
+    #            help='Path to input directory at NCSA. Must include storage and gen2repo subdirectories')
     parser.add('--first_day', action='store', type=str, required=False,
                help='Date in YYYYMMYY format for first. Must be before last day. Will override num_days')
     parser.add('--gen', action='store', type=int, required=False, default=2,
@@ -166,34 +148,43 @@ def get_config():
                help='Search repo for all links (for repos with nonstandard db format).')
     parser.add('--num_days', action='store', type=int, required=False,
                help='Number of days before the last date.')
+    parser.add('--source_config', action='store', type=str, required=True,
+               help='Path to data source config file')
+    parser.add('--source_name', action='store', type=str, required=True,
+               help='Name of data source in data source config file to monitor')
     config = vars(parser.parse_args())
     return config
 
 
 class db_filler:
-    def __init__(self, input_dir, output_dir, ingest_log, last_day=[]):
+    def __init__(self, config):
+        # Load the data source config
+        try:
+            with open(config['source_config'], 'r') as conf_file:
+                data_sources = yaml.safe_load(conf_file)
+                log.debug(data_sources)
+                self.data_source = [src for src in data_sources if src['name'] == config['source_name']][0]
+        except Exception as e:
+            log.error(str(e))
+            log.error(f"""Could not determine database for source named "{config['source_name']}". Exiting""")
+            sys.exit(1)
         self.now = datetime.utcnow()
         self.nowstr = self.now.strftime('%Y-%m-%dT%H:%M:%S')
-        self.input_dir = input_dir
-        self.output_dir = output_dir
-        self.lock = output_dir+'/.monitor.lock'
-        self.name = output_dir.split('/')[-1]
+        self.input_dir = self.data_source['data_dir']
+        self.output_dir = config['output_dir']
+        self.lock = config['output_dir']+'/.monitor.lock'
+        self.name = config['output_dir'].split('/')[-1]
         if len(self.name) == 0:
-           self.name = output_dir.split('/')[-2]
+           self.name = config['output_dir'].split('/')[-2]
         self.check_input_dir()
         self.check_output_dir()
         self.check_lock()
-        if last_day is None:
+        if config['last_day'] is None:
            self.last_day = self.now
         else:
-           self.last_day = datetime(int(last_day[0:4]), int(
-               last_day[4:6]), int(last_day[6:8]), 0, tzinfo=timezone.utc)
-        self.ingest_log = ingest_log
+           self.last_day = datetime(int(config['last_day'][0:4]), int(config['last_day'][4:6]), int(config['last_day'][6:8]), 0, tzinfo=timezone.utc)
+        self.ingest_log = config['ingest_log']
         self.image_data = []
-
-    def db_conn(self):
-        params = config()
-        conn = psycopg2.connect(**params)
 
     def check_input_dir(self):
         self.repo_dir = self.input_dir+'/gen2repo/'
@@ -242,7 +233,7 @@ class db_filler:
                 N_Small INTEGER,
                 N_Not_Fits,
                 N_Error INTEGER,
-                Last_Transfer TEXT,
+                Last_Discovery TEXT,
                 Last_Ingest TEXT
             )'''
         )
@@ -308,7 +299,7 @@ class db_filler:
         self.tnites=[]
         self.filesizes=[]
         if DIRLIST == []:
-#            DIRLIST=[self.nite, self.nite_no_hyphen, self.next_nite, self.next_nite_no_hyphen]
+            # DIRLIST=[self.nite, self.nite_no_hyphen, self.next_nite, self.next_nite_no_hyphen]
             DIRLIST=[self.nite, self.nite_no_hyphen]
         for DIR in DIRLIST:
             if DIR in [self.next_nite, self.next_nite_no_hyphen]:
@@ -333,7 +324,7 @@ class db_filler:
                      self.nfiles += 1
                      dirfile+=1
 
-    async def get_creation_times(self):
+    async def get_creation_times(self, efd_table):
         
         client = EfdClient('ldf_stable_efd')
         cl = client.influx_client
@@ -341,18 +332,6 @@ class db_filler:
         nite_time = Time(f'{self.nite}T00:00:00', scale='tai')
 
         def make_query_str(start_time):
-            # query = f'''
-            #         SELECT
-            #             "imageName",
-            #             "imageDate",
-            #             "imageIndex",
-            #             "timestampAcquisitionStart",
-            #             "timestampEndOfReadout",
-            #             "imageSource",
-            #             "imagesInSequence"
-            #         FROM "efd"."autogen"."lsst.sal.ATCamera.logevent_endReadout"
-            #         WHERE time >= '{start_time.isot}Z'
-            #         '''
             query = f'''
                     SELECT 
                         "camera", 
@@ -362,7 +341,7 @@ class db_filler:
                         "private_rcvStamp", 
                         "private_sndStamp",
                         "statusCode" 
-                    FROM "efd"."autogen"."lsst.sal.ATArchiver.logevent_imageRetrievalForArchiving" 
+                    FROM "efd"."autogen"."{efd_table}" 
                     WHERE time >= '{start_time.isot}Z'
                     '''
             # log.debug(query)
@@ -402,22 +381,9 @@ class db_filler:
                         log.error(f'Error displaying row: {row}. Error message: {str(e)}')
             self.image_data = image_data
             return image_data
-
-        # loop = asyncio.get_event_loop()
-        # tasks = [
-        #     loop.create_task(submit_query()),
-        # ]
-        # loop.run_until_complete(asyncio.wait(tasks))
-        # loop.close()
-
         return await submit_query()
 
     def count_files_gen3(self):
-        table = findtable(self.input_dir)
-        if table.startswith('obs_comcam_ccs'):
-            file_events_table = 'obs_comcam_ccs_o_gen3_file_events'
-        else:
-            file_events_table = f'{table}gen3_file_events'
         query = f'''
         set TIMEZONE='UTC'; 
         WITH 
@@ -431,8 +397,8 @@ class db_filler:
                     start_time, 
                     err_message 
                 FROM 
-                    {table}files, 
-                    {file_events_table}
+                    {self.data_source['files_table']}, 
+                    {self.data_source['file_events_table']}
                 WHERE 
                     files_id = id 
                     AND 
@@ -737,7 +703,7 @@ class db_filler:
                 N_Small,
                 N_Not_Fits,
                 N_Error,
-                Last_Transfer,
+                Last_Discovery,
                 Last_Ingest
             ) VALUES(
                 '{self.nite}',
@@ -925,7 +891,8 @@ async def main():
     if (gen != 2) and (gen != 3):
         log.error("'gen' variable must be either 2 or 3. Exiting.")
         sys.exit(1)
-    db_lines = db_filler(config['input_dir'], config['output_dir'], config['ingest_log'], config['last_day'])
+    db_lines = db_filler(config)
+        # config['input_dir'], config['output_dir'], config['ingest_log'], config['last_day'])
 
     if gen == 2:
         for num in range(num_days):
