@@ -1,6 +1,6 @@
 configargparse
 sqlalchemy
-psycopg2-binary
+# psycopg2-binary
 pandas
 lsst-efd-client
 astropy

@@ -32,6 +32,9 @@ spec:
           - name: data-nts
             persistentVolumeClaim:
               claimName: nfs-data-nts-pvc
+          - name: data-sources-config
+            configMap:
+              name: data-sources-config
           initContainers:
           - name: init
             image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
@@ -97,6 +100,9 @@ spec:
             - name: webfiles
               mountPath: /home/worker/public_html
               subPath: {{ .Release.Name }}-webfiles
+            - name: data-sources-config
+              mountPath: /etc/config/data_sources.yaml
+              subPath: data_sources.yaml
             lifecycle:
               postStart:
                 exec:
