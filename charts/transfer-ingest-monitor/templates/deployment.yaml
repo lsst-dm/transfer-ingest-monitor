@@ -80,9 +80,6 @@ spec:
         - name: webfiles
           mountPath: /home/worker/public_html
           subPath: {{ .Release.Name }}-webfiles
-        - name: data-sources-config
-          mountPath: /etc/config/data_sources.yaml
-          subPath: data_sources.yaml
       containers:
       # Transfer and Ingest Monitor
       - name: transfer-ingest-monitor
@@ -120,6 +117,9 @@ spec:
         - name: webfiles
           mountPath: /home/worker/public_html
           subPath: {{ .Release.Name }}-webfiles
+        - name: data-sources-config
+          mountPath: /etc/config/data_sources.yaml
+          subPath: data_sources.yaml
         lifecycle:
           postStart:
             exec:
