@@ -1,0 +1,55 @@
+data_sources:
+- name: "auxtel_ccs"
+  data_dir: "/lsstdata/offline/instrument/LATISS-ccs"
+  table_prefix: "obs_auxtel_ccs_"
+  efd:
+    table: "lsst.sal.ATCamera.logevent_endReadout"
+    columns:
+    - name: "timestampEndOfReadout"
+      description: "End of image readout"
+      type: timestamp
+- name: "comcam_ccs"
+  data_dir: "/lsstdata/offline/instrument/LSSTComCam-ccs"
+  table_prefix: "obs_comcam_ccs_"
+  efd:
+    table: "lsst.sal.CCCamera.logevent_endReadout"
+    columns:
+    - name: "timestampEndOfReadout"
+      description: "End of image readout"
+      type: timestamp
+- name: "auxtel_arc"
+  data_dir: "/lsstdata/offline/instrument/LATISS"
+  table_prefix: "obs_auxtel_arc_"
+  efd:
+    table: "lsst.sal.ATArchiver.logevent_imageRetrievalForArchiving"
+    columns:
+    - name: "private_rcvStamp"
+      description: "Image received by archiver"
+      type: timestamp
+- name: "comcam_arc"
+  data_dir: "/lsstdata/offline/instrument/LSSTComCam"
+  table_prefix: "obs_comcam_arc_"
+  efd:
+    table: "lsst.sal.CCArchiver.logevent_imageRetrievalForArchiving"
+    columns:
+    - name: "private_rcvStamp"
+      description: "Image received by archiver"
+      type: timestamp
+- name: "nts_auxtel"
+  data_dir: "/lsstdata/offline/teststand/NCSA_auxTel"
+  table_prefix: "nts_auxtel_"
+  efd:
+    table: ""
+    columns: []
+- name: "nts_comcam"
+  data_dir: "/lsstdata/offline/teststand/NCSA_comcam"
+  table_prefix: "nts_comcam_"
+  efd:
+    table: ""
+    columns: []
+- name: "bot"
+  data_dir: "/lsstdata/offline/instrument/LSSTCam-bot"
+  table_prefix: "slac_bot_"
+  efd:
+    table: ""
+    columns: []
