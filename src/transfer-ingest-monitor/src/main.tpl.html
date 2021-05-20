@@ -12,9 +12,11 @@
             <p>"Nite Obs" is the observing night (tied to UTC-12).<br>
                 "Last Update" is the most recent UTC time that Nite Obs was checked.<br>
                 "N Files" is the number of files received at NCSA.<br>
-                "Last Creation" is the UTC of the most recent file creation.<br>
                 {%- if gen3 -%}
-                "Last Transfer" is the UTC of the most recent file creation.<br>
+                "Last Creation" is the UTC of the most recent file creation.<br>
+                "Last Discovery" is the UTC of the most recently tracked file.<br>
+                {%- else %}
+                "Last Transfer" is the UTC of the most recent file transfer.<br>
                 {%- endif %}
                 "N Ingest" is the number of files successfully ingested at NCSA.<br>
                 "N Small" is the number of uningested files smaller than 10K.<br>
