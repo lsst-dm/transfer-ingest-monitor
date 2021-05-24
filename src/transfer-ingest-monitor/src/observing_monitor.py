@@ -37,25 +37,6 @@ except:
     log.setLevel('WARNING')
 
 
-def countdays(num_days, first_day, last_day):
-    if first_day is None:
-       if num_days is not None:
-          return num_days
-       else:
-          return 2
-    else:
-       first_day_stamp = datetime(int(first_day[0:4]), int(first_day[4:6]), int(
-           first_day[6:8]), 0, tzinfo=timezone.utc).timestamp()
-    if last_day is None:
-       last_day_stamp = (datetime.utcnow()).timestamp()
-    else:
-       last_day_stamp = datetime(int(last_day[0:4]), int(last_day[4:6]), int(last_day[6:8]), 0, tzinfo=timezone.utc).timestamp()
-    if first_day_stamp > last_day_stamp:
-       log.error("First day is after last day. Exiting.")
-       sys.exit(1)
-    return int((last_day_stamp-first_day_stamp)/3600/24+1)
-
-
 def rec_listdir(dir):
     output = []
     filelist = os.listdir(dir)
@@ -82,11 +63,11 @@ def get_config():
     # parser.add('--input_dir', action='store', type=str, required=True,
     #            help='Path to input directory at NCSA. Must include storage and gen2repo subdirectories')
     parser.add('--first_day', action='store', type=str, required=False,
-               help='Date in YYYYMMYY format for first. Must be before last day. Will override num_days')
-    parser.add('--gen', action='store', type=int, required=False, default=2,
+               help='Date in YYYYMMDD format for first. Must be before last day. Will override num_days')
+    parser.add('--gen', action='store', type=int, required=False, default=2, choices=[2,3],
                help='Generation butler (2 or 3) supported.')
     parser.add('--last_day', action='store', type=str, required=False,
-               help='Date in YYYYMMYY format for last day if not today.')
+               help='Date in YYYYMMDD format for last day if not today.')
     parser.add('--output_dir', action='store', type=str, required=True,
                help='Path to output directory where DB and webpage will live')
     parser.add('--search_links', action='store_true',
@@ -100,29 +81,115 @@ def get_config():
     config = vars(parser.parse_args())
     return config
 
+values_dev = '''
+- name: "auxtel_ccs"
+  data_dir: "/lsstdata/offline/instrument/LATISS-ccs"
+  consolidated_db:
+    files_table: "obs_auxtel_ccs_files"
+    file_events_table: "obs_auxtel_ccs_gen3_file_events"
+  efd:
+    tables:
+      archiver: 'lsst.sal.ATArchiver.logevent_imageRetrievalForArchiving'
+      camera: 'lsst.sal.ATCamera.logevent_endReadout'
+- name: "comcam_ccs"
+  data_dir: "/lsstdata/offline/instrument/LSSTComCam-ccs"
+  consolidated_db:
+    files_table: "obs_comcam_ccs_files"
+    # Note that this breaks the pattern with `o_gen3_file_events` instead of `gen3_file_events`
+    file_events_table: "obs_comcam_ccs_o_gen3_file_events"
+  efd:
+    tables:
+      archiver: 'lsst.sal.CCArchiver.logevent_imageRetrievalForArchiving'
+      camera: 'lsst.sal.CCCamera.logevent_endReadout'
+- name: "auxtel_arc"
+  data_dir: "/lsstdata/offline/instrument/LATISS"
+  consolidated_db:
+    files_table: "obs_auxtel_arc_files"
+    file_events_table: "obs_auxtel_arc_gen3_file_events"
+  efd:
+    tables:
+      archiver: 'lsst.sal.ATArchiver.logevent_imageRetrievalForArchiving'
+      camera: 'lsst.sal.ATCamera.logevent_endReadout'
+- name: "comcam_arc"
+  data_dir: "/lsstdata/offline/instrument/LSSTComCam"
+  consolidated_db:
+    files_table: "obs_comcam_arc_files"
+    file_events_table: "obs_comcam_arc_gen3_file_events"
+  efd:
+    tables:
+      archiver: 'lsst.sal.CCArchiver.logevent_imageRetrievalForArchiving'
+      camera: 'lsst.sal.CCCamera.logevent_endReadout'
 
-class db_filler:
+# - name: "nts_auxtel"
+#   data_dir: "/lsstdata/offline/teststand/NCSA_auxTel"
+#   files_table: "nts_auxtel_files"
+#   file_events_table: "nts_auxtel_gen3_file_events"
+#   efd:
+#     table: ""
+#     columns: []
+# - name: "nts_comcam"
+#   data_dir: "/lsstdata/offline/teststand/NCSA_comcam"
+#   files_table: "nts_comcam_files"
+#   file_events_table: "nts_comcam_gen3_file_events"
+#   efd:
+#     table: ""
+#     columns: []
+# - name: "bot"
+#   data_dir: "/lsstdata/offline/instrument/LSSTCam-bot"
+#   files_table: "slac_bot_files"
+#   file_events_table: "slac_bot_gen3_file_events"
+#   efd:
+#     table: ""
+#     columns: []
+
+'''
+
+
+class TransferIngestMonitor:
     def __init__(self, config):
         # Load the data source config
         try:
             with open(config['source_config'], 'r') as conf_file:
                 data_sources = yaml.safe_load(conf_file)
+                data_sources = yaml.safe_load(values_dev)
                 self.data_source = [src for src in data_sources if src['name'] == config['source_name']][0]
         except Exception as e:
             log.error(str(e))
             log.error(f"""Could not determine database for source named "{config['source_name']}". Exiting""")
             sys.exit(1)
-        
+
         # Set the data source name
         self.name = config['source_name']
+        self.gen = config['gen']
         
         # Store the current time
         self.now = datetime.utcnow()
         self.nowstr = self.now.strftime('%Y-%m-%dT%H:%M:%S')
-        if config['last_day'] is None:
-           self.last_day = self.now
+        last_day = config['last_day']
+        first_day = config['first_day']
+        num_days = config['num_days']
+        # Last day
+        if last_day:
+            self.last_day = datetime(int(last_day[0:4]), int(last_day[4:6]), int(last_day[6:8]), 0, tzinfo=timezone.utc)
         else:
-           self.last_day = datetime(int(config['last_day'][0:4]), int(config['last_day'][4:6]), int(config['last_day'][6:8]), 0, tzinfo=timezone.utc)
+            self.last_day = self.now
+        # First day
+        if first_day:
+            self.first_day = datetime(int(first_day[0:4]), int(first_day[4:6]), int(first_day[6:8]), 0, tzinfo=timezone.utc)
+            self.num_days = int((self.last_day.timestamp()-self.first_day.timestamp())/3600/24+1)
+        elif num_days:
+            self.num_days = num_days
+            self.first_day = self.last_day-timedelta(days=self.num_days)
+        else:
+            self.num_days = 2
+            self.first_day = self.last_day-timedelta(days=self.num_days)
+
+        if self.first_day > self.last_day:
+            log.error("First day is after last day. Exiting.")
+            sys.exit(1)
+        
+        log.debug(f'{yaml.dump(self, indent=2)}')
+        
         self.image_data = []
         
         # Initialize data source file paths
@@ -138,6 +205,7 @@ class db_filler:
         
         # Initialize the output paths
         self.output_dir = Path(config['output_dir'])
+        os.makedirs(self.output_dir, exist_ok=True)
         # Check for the lock file and exit if present
         self.lock = os.path.join(self.output_dir, '.monitor.lock')
         if os.path.exists(self.lock):
@@ -146,7 +214,6 @@ class db_filler:
         open(self.lock, 'a').close() 
         self.html = os.path.join(self.output_dir, 'index.html')
         self.db = os.path.join(self.output_dir, 'observing_monitor.sqlite3')
-        os.makedirs(self.output_dir, exist_ok=True)
         if not os.path.exists(self.output_dir):
           log.error(f"You do not have access to {self.output_dir}. Exiting.")
           sys.exit(1)
@@ -226,6 +293,7 @@ class db_filler:
         mintime = datetime(int(self.nite[0:4]), int(self.nite[5:7]), int(self.nite[8:10]), 12, tzinfo=timezone.utc)
         self.mintime = mintime.timestamp()
         self.maxtime = (mintime+timedelta(days=1)).timestamp()
+        log.debug(f"Current night: {self.nite}")
 
     def count_new_files(self, dir_list=[]):
         self.nfiles = 0
@@ -262,38 +330,99 @@ class db_filler:
                     self.nfiles += 1
                     dirfile += 1
 
+    async def get_images_taken(self):
+
+        client = EfdClient('ldf_stable_efd')
+        cl = client.influx_client
+        
+        first_nite = Time(f'{self.first_day.strftime("%Y-%m-%d")}T00:00:00', scale='tai')
+        last_nite  = Time(f'{self.last_day.strftime("%Y-%m-%d")}T00:00:00', scale='tai')
+        self.image_data = []
+        try:
+            table_name_archiver = self.data_source['efd']['tables']['archiver']
+            table_name_camera = self.data_source['efd']['tables']['camera']
+        except:
+            return
+        query = f'''
+            SELECT 
+                "obsid",
+                "raft",
+                "sensor"
+            FROM "efd"."autogen"."{table_name_archiver}"
+            WHERE time >= '{first_nite.isot}Z' AND time < '{last_nite.isot}Z'
+        '''
+        # log.debug(query)
+        result = await cl.query(query)
+
+        if len(result) > 0:
+            for index, row in result.iterrows():
+                log.debug(f'Row {index}:\n{row}')
+                try:
+                    filename = f'''{row['obsid']}-R{row['raft']}S{row['sensor']}.fits'''
+                    obsid = row['obsid']
+                    query2 = f'''
+                        SELECT 
+                            "imageName",
+                            "timestampEndOfReadout"
+                        FROM "efd"."autogen"."{table_name_camera}"
+                        WHERE imageName = '{obsid}'
+                    '''
+                    # log.debug(query2)
+                    result2 = await cl.query(query2)
+                                
+                    if len(result2) > 0:
+                        for index, row2 in result2.iterrows():
+                            log.debug(f'Row {index}:\n{row2}')
+                            try:
+                                creation_time = row2['timestampEndOfReadout']
+                                self.image_data.append({
+                                    'timestamp': creation_time,
+                                    'created_time': datetime.fromtimestamp(creation_time).strftime("%Y-%m-%dT%H:%M:%S"),
+                                    'filename': filename,
+                                    'imageName': obsid,
+                                })
+                                log.debug(f'{self.image_data[-1]}')
+                            except Exception as e:
+                                log.error(f'Error displaying row: {str(e)}')
+                except Exception as e:
+                    log.error(f'Error displaying row: {str(e)}')
+
     async def get_creation_times(self):
 
         client = EfdClient('ldf_stable_efd')
         cl = client.influx_client
         nite_time = Time(f'{self.nite}T00:00:00', scale='tai')
         self.image_data = []
-
+        log.debug('GET CREATION TIMES:')
+        log.debug(f'{self.name}: {self.nite}')
         try:
-            col_name = self.data_source['efd']['columns'][0]['name']
             table_name = self.data_source['efd']['table']
         except:
             return
-
-        result = await cl.query(f'''
+        query = f'''
             SELECT 
-                "description", 
-                "{col_name}"
+                "imageName",
+                "raft",
+                "sensor"
             FROM "efd"."autogen"."{table_name}" 
             WHERE time >= '{nite_time.isot}Z'
-        ''')
+        '''
+        # log.debug(query)
+        result = await cl.query(query)
 
         if len(result) > 0:
             for index, row in result.iterrows():
+                log.debug(f'Row {index}:\n{row}')
                 try:
-                    filename = re.sub(r'(.+) is successfully transferred.*', r'\1', row['description']).strip()
+                    # filename = re.sub(r'(.+) is successfully transferred.*', r'\1', row[name_col_name]).strip()
+                    filename = f'''{row['imageName']}-R{row['raft']}S{row['sensor']}.fits'''
+                    log.debug(f'Filename: {filename}')
                     self.image_data.append({
-                        'created_time': datetime.fromtimestamp(row[col_name]).strftime("%m-%d-%YT%H:%M:%S"),
+                        'created_time': datetime.fromtimestamp(row['timestampEndOfReadout']).strftime("%m-%d-%YT%H:%M:%S"),
                         'filename': filename,
                     })
                 except Exception as e:
-                    log.error(
-                        f'Error displaying row: {row}. Error message: {str(e)}')
+                    log.error(f'Error displaying row: {str(e)}')
 
     def count_files_gen3(self):
 
@@ -306,6 +435,12 @@ class db_filler:
                     return indate[:4]+'-'+indate[5:7]+'-'+indate[8:10]
             return ''
 
+        daystr = (self.first_day).strftime('%Y%m%d')
+        filename_condition = f"""filename LIKE '%%{daystr}%%.fits'"""
+        for day in range(1,self.num_days):
+            daystr = (self.first_day+timedelta(days=day)).strftime('%Y%m%d')
+            filename_condition += f""" OR 
+                        filename LIKE '%%{daystr}%%.fits'"""
         
         query = f'''
         set TIMEZONE='UTC'; 
@@ -320,12 +455,13 @@ class db_filler:
                     start_time, 
                     err_message 
                 FROM 
-                    {self.data_source['files_table']}, 
-                    {self.data_source['file_events_table']}
+                    {self.data_source['consolidated_db']['files_table']}, 
+                    {self.data_source['consolidated_db']['file_events_table']}
                 WHERE 
                     files_id = id 
-                    AND 
-                    added_on > '{self.nite} 00:00:00+00'
+                    AND (
+                        {filename_condition}
+                    )
             ),  
             max AS (
                 SELECT 
@@ -358,6 +494,8 @@ class db_filler:
         }
         engine = sqlalchemy.create_engine(f'''postgresql://{db['user']}@{db['host']}:{db['port']}/{db['db']}''')
         df = pd.read_sql(query, engine)
+        log.debug(f'query: {query}')
+        log.debug(f'Results:\n{df}')
         self.paths = np.array(df['path'])
         self.filenames = np.array(df['filename'])
         self.ids = np.array(df['id'], dtype=int)
@@ -439,7 +577,7 @@ class db_filler:
                 self.nlinks += 1
             else:
                 log.warning(full_path+' does not exist.')
-        log.debug(str(self.nlinks)+" found.")
+        log.debug(f'''{self.name} (gen {self.gen}): {str(self.nlinks)} found for {self.nite}.''')
 
     def count_links_search(self, dirlist=[]):
         self.ltimes = []
@@ -536,14 +674,19 @@ class db_filler:
     def update_db_gen3(self):
         conn = sqlite3.connect(self.db)
         c = conn.cursor()
-        for num in range(len(self.ids)):
-            search = [image for image in self.image_data if image['filename'] == self.filenames[num]]
-            # log.debug(f'Image search. Find filename "{self.filenames[num]}": {search}')
-            if search:
-                created_time = search[0]['created_time']
-            else:
-                created_time = self.ctimes[num]
-            # log.debug(f'Created time: {created_time}')
+        # log.debug(f'IDs: {self.ids}')
+        # log.debug(f'''Image search: "{[image['filename'] for image in self.image_data]}"''')
+        images_recorded = 0
+        for image in self.image_data:
+            search = [idx for idx, filename in enumerate(self.filenames) if image['filename'] == filename ]
+            if not search:
+                continue
+            if len(search) > 1:
+                log.warning(f'More than one filename matches the image: {search}')
+            idx = search[0]
+            log.debug(f'''Image search. Image : "{image}"''')
+            created_time = image['created_time']
+            log.debug(f'   Created time: {created_time}')
             query = f'''
                 INSERT OR REPLACE INTO FILE_LIST_GEN3 (
                     Filenum, 
@@ -571,21 +714,22 @@ class db_filler:
                 '''
             # log.debug(f'Query:\n{query}')
             c.execute(query, {
-                'ids': str(self.ids[num]),
-                'nites': self.nites[num],
+                'ids': str(self.ids[idx]),
+                'nites': self.nites[idx],
                 'now': self.nowstr,
-                'paths': self.paths[num],
-                'statuss': self.statuss[num],
+                'paths': self.paths[idx],
+                'statuss': self.statuss[idx],
                 'created_time': created_time,
-                'ttimes': self.ttimes[num],
-                'itimes': self.itimes[num],
-                'filesizes': str(self.filesizes[num]),
-                'errmsg': self.err_messages[num],
+                'ttimes': self.ttimes[idx],
+                'itimes': self.itimes[idx],
+                'filesizes': str(self.filesizes[idx]),
+                'errmsg': self.err_messages[idx],
             })
+            images_recorded += 1
         conn.commit()
         conn.close()
         if len(self.ids) > 0:
-            log.info(f"Inserted or replaced {len(self.ids)} into FILE_LIST_GEN3.")
+            log.info(f"Inserted or replaced {images_recorded} into FILE_LIST_GEN3.")
 
     def update_db_links(self):
         conn = sqlite3.connect(self.db)
@@ -845,38 +989,32 @@ class db_filler:
 
 async def main():
     config = get_config()
-    num_days = countdays(config['num_days'], config['first_day'], config['last_day'])
-    gen = config['gen']
-    if (gen != 2) and (gen != 3):
-        log.error("'gen' variable must be either 2 or 3. Exiting.")
-        sys.exit(1)
-    db_lines = db_filler(config)
+    tim = TransferIngestMonitor(config)
 
-    if gen == 2:
-        for num in range(num_days):
-            db_lines.set_date(num)
-            db_lines.count_new_files()
-            db_lines.update_db_files()
+    if tim.gen == 2:
+        for num in range(tim.num_days):
+            tim.set_date(num)
+            tim.count_new_files()
+            tim.update_db_files()
             if config['search_links']:
-                db_lines.count_links_search()
+                tim.count_links_search()
             else:
-                db_lines.count_links()
-            db_lines.update_db_links()
-        for num in range(num_days):
-            db_lines.set_date(num)
-            db_lines.get_night_data()
-            db_lines.update_nite_html()
-        db_lines.update_main_html()
-    if gen == 3:
-        db_lines.set_date(num_days)
-        db_lines.count_files_gen3()
-        await db_lines.get_creation_times()
-        db_lines.update_db_gen3()
-        for num in range(num_days):
-            db_lines.set_date(num)
-            db_lines.get_night_data_gen3()
-            db_lines.update_nite_html(gen3=True)
-        db_lines.update_main_html(gen3=True)
-    os.remove(db_lines.lock)
+                tim.count_links()
+            tim.update_db_links()
+        for num in range(tim.num_days):
+            tim.set_date(num)
+            tim.get_night_data()
+            tim.update_nite_html()
+        tim.update_main_html()
+    if tim.gen == 3:
+        await tim.get_images_taken()
+        tim.count_files_gen3()
+        for num in range(tim.num_days):
+            tim.set_date(num)
+            tim.update_db_gen3()
+            tim.get_night_data_gen3()
+            tim.update_nite_html(gen3=True)
+        tim.update_main_html(gen3=True)
+    os.remove(tim.lock)
 
 asyncio.run(main())

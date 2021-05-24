@@ -16,66 +16,64 @@ db:
 devMode: false
 cronjob:
   schedule: "*/5 * * * *"
+  
 data_sources:
 - name: "auxtel_ccs"
   data_dir: "/lsstdata/offline/instrument/LATISS-ccs"
-  files_table: "obs_auxtel_ccs_files"
-  file_events_table: "obs_auxtel_ccs_gen3_file_events"
+  consolidated_db:
+    files_table: "obs_auxtel_ccs_files"
+    file_events_table: "obs_auxtel_ccs_gen3_file_events"
   efd:
-    table: "lsst.sal.ATCamera.logevent_endReadout"
-    columns:
-    - name: "timestampEndOfReadout"
-      description: "End of image readout"
-      type: timestamp
+    tables:
+      archiver: 'lsst.sal.ATArchiver.logevent_imageRetrievalForArchiving'
+      camera: 'lsst.sal.ATCamera.logevent_endReadout'
 - name: "comcam_ccs"
   data_dir: "/lsstdata/offline/instrument/LSSTComCam-ccs"
-  files_table: "obs_comcam_ccs_files"
-  # Note that this breaks the pattern with `o_gen3_file_events` instead of `gen3_file_events`
-  file_events_table: "obs_comcam_ccs_o_gen3_file_events"
+  consolidated_db:
+    files_table: "obs_comcam_ccs_files"
+    # Note that this breaks the pattern with `o_gen3_file_events` instead of `gen3_file_events`
+    file_events_table: "obs_comcam_ccs_o_gen3_file_events"
   efd:
-    table: "lsst.sal.CCCamera.logevent_endReadout"
-    columns:
-    - name: "timestampEndOfReadout"
-      description: "End of image readout"
-      type: timestamp
+    tables:
+      archiver: 'lsst.sal.CCArchiver.logevent_imageRetrievalForArchiving'
+      camera: 'lsst.sal.CCCamera.logevent_endReadout'
 - name: "auxtel_arc"
   data_dir: "/lsstdata/offline/instrument/LATISS"
-  files_table: "obs_auxtel_arc_files"
-  file_events_table: "obs_auxtel_arc_gen3_file_events"
+  consolidated_db:
+    files_table: "obs_auxtel_arc_files"
+    file_events_table: "obs_auxtel_arc_gen3_file_events"
   efd:
-    table: "lsst.sal.ATArchiver.logevent_imageRetrievalForArchiving"
-    columns:
-    - name: "private_rcvStamp"
-      description: "Image received by archiver"
-      type: timestamp
+    tables:
+      archiver: 'lsst.sal.ATArchiver.logevent_imageRetrievalForArchiving'
+      camera: 'lsst.sal.ATCamera.logevent_endReadout'
 - name: "comcam_arc"
   data_dir: "/lsstdata/offline/instrument/LSSTComCam"
-  files_table: "obs_comcam_arc_files"
-  file_events_table: "obs_comcam_arc_gen3_file_events"
+  consolidated_db:
+    files_table: "obs_comcam_arc_files"
+    file_events_table: "obs_comcam_arc_gen3_file_events"
   efd:
-    table: "lsst.sal.CCArchiver.logevent_imageRetrievalForArchiving"
-    columns:
-    - name: "private_rcvStamp"
-      description: "Image received by archiver"
-      type: timestamp
-- name: "nts_auxtel"
-  data_dir: "/lsstdata/offline/teststand/NCSA_auxTel"
-  files_table: "nts_auxtel_files"
-  file_events_table: "nts_auxtel_gen3_file_events"
-  efd:
-    table: ""
-    columns: []
-- name: "nts_comcam"
-  data_dir: "/lsstdata/offline/teststand/NCSA_comcam"
-  files_table: "nts_comcam_files"
-  file_events_table: "nts_comcam_gen3_file_events"
-  efd:
-    table: ""
-    columns: []
-- name: "bot"
-  data_dir: "/lsstdata/offline/instrument/LSSTCam-bot"
-  files_table: "slac_bot_files"
-  file_events_table: "slac_bot_gen3_file_events"
-  efd:
-    table: ""
-    columns: []
+    tables:
+      archiver: 'lsst.sal.CCArchiver.logevent_imageRetrievalForArchiving'
+      camera: 'lsst.sal.CCCamera.logevent_endReadout'
+
+# - name: "nts_auxtel"
+#   data_dir: "/lsstdata/offline/teststand/NCSA_auxTel"
+#   files_table: "nts_auxtel_files"
+#   file_events_table: "nts_auxtel_gen3_file_events"
+#   efd:
+#     table: ""
+#     columns: []
+# - name: "nts_comcam"
+#   data_dir: "/lsstdata/offline/teststand/NCSA_comcam"
+#   files_table: "nts_comcam_files"
+#   file_events_table: "nts_comcam_gen3_file_events"
+#   efd:
+#     table: ""
+#     columns: []
+# - name: "bot"
+#   data_dir: "/lsstdata/offline/instrument/LSSTCam-bot"
+#   files_table: "slac_bot_files"
+#   file_events_table: "slac_bot_gen3_file_events"
+#   efd:
+#     table: ""
+#     columns: []
