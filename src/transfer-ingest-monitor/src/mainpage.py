@@ -27,9 +27,14 @@ if len(sys.argv) < 2:
     print("indir are output dirs written to by observing_monitor.py")
     print("If indirs do not begin with a '/' they are assumed to be appended on output")
     sys.exit()
+# Number of days to include on the summary page
+try:
+    num_days = int(os.environ['MONITOR_NUM_DAYS'])
+except:
+    num_days = 30
 now = datetime.utcnow()
 nowstr= now.strftime('%Y-%m-%dT%H:%M:%S')
-firstnite=(now-timedelta(days=3)).strftime('%Y-%m-%d')
+firstnite=(now-timedelta(days=num_days)).strftime('%Y-%m-%d')
 
 outdir=sys.argv[1]
 outfile = f'{outdir}/index.html'
@@ -42,15 +47,15 @@ for indir in sys.argv[2:]:
         db = f'{indir}/observing_monitor.sqlite3'
         if os.path.exists(f'{indir}/index_gen2.html'):
             streams.append({
-                'name': f'''{indir.split('/')[-1]} Gen 2''',
+                'name': f'''{indir.split('/')[-1]} <span style="font-size:smaller; font-variant:all-small-caps">(Gen 2)</span>''',
                 'link': f'''{indir.split('/')[-1]}/index_gen2.html''',
-                'data_table': db_to_html(db, f'select * from FILE_COUNT where Nite_Obs >= "{firstnite}" order by Nite_Obs DESC',linkify=True,prefix=f'''{indir.split('/')[-1]}/'''),
+                'data_table': db_to_html(db, f'select * from FILE_COUNT where Nite_Obs >= "{firstnite}" AND N_Ingest > 0 order by Nite_Obs DESC',linkify=True,prefix=f'''{indir.split('/')[-1]}/'''),
             })
         if os.path.exists(f'{indir}/index.html'):
             streams.append({
-                'name': f'''{indir.split('/')[-1]}''',
+                'name': f'''{indir.split('/')[-1]} <span style="font-size:smaller; font-variant:all-small-caps">(Gen 3)</span>''',
                 'link': f'''{indir.split('/')[-1]}''',
-                'data_table': db_to_html(db, f'select * from FILE_COUNT_GEN3 where Nite_Obs >= "{firstnite}" order by Nite_Obs DESC',linkify=True,prefix=f'''{indir.split('/')[-1]}/'''),
+                'data_table': db_to_html(db, f'select * from FILE_COUNT_GEN3 where Nite_Obs >= "{firstnite}" AND N_Ingest > 0 order by Nite_Obs DESC',linkify=True,prefix=f'''{indir.split('/')[-1]}/'''),
             })
     except Exception as e:
         log.error(f'{str(e)}')
@@ -63,6 +68,7 @@ try:
         html_head=html_head,
         nowstr=nowstr,
         streams=streams,
+        num_days=num_days,
     )
     # log.debug(f'{html}')
 except Exception as e:

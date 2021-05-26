@@ -4,6 +4,10 @@ body {
 h1,h2,h3,h4 {
     font-family: Arial, Helvetica, sans-serif;
 }
+h1 {
+    font-size: 1.6rem;
+    font-variant: all-small-caps;
+}
 p {
     /* font-size: 20pt; */
     font-family: Georgia, serif;
@@ -18,6 +22,11 @@ p {
     top: 0;
     background-color: white;
     box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.4);
+}
+.summary-table th {
+    position: relative; 
+    background-color: white;
+    /* box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.4); */
 }
 p.breadcrumbs,
 p.breadcrumbs a {

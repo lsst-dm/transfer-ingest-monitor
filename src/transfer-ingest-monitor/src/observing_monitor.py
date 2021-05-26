@@ -81,69 +81,6 @@ def get_config():
     config = vars(parser.parse_args())
     return config
 
-values_dev = '''
-- name: "auxtel_ccs"
-  data_dir: "/lsstdata/offline/instrument/LATISS-ccs"
-  consolidated_db:
-    files_table: "obs_auxtel_ccs_files"
-    file_events_table: "obs_auxtel_ccs_gen3_file_events"
-  efd:
-    tables:
-      archiver: 'lsst.sal.ATArchiver.logevent_imageRetrievalForArchiving'
-      camera: 'lsst.sal.ATCamera.logevent_endReadout'
-- name: "comcam_ccs"
-  data_dir: "/lsstdata/offline/instrument/LSSTComCam-ccs"
-  consolidated_db:
-    files_table: "obs_comcam_ccs_files"
-    # Note that this breaks the pattern with `o_gen3_file_events` instead of `gen3_file_events`
-    file_events_table: "obs_comcam_ccs_o_gen3_file_events"
-  efd:
-    tables:
-      archiver: 'lsst.sal.CCArchiver.logevent_imageRetrievalForArchiving'
-      camera: 'lsst.sal.CCCamera.logevent_endReadout'
-- name: "auxtel_arc"
-  data_dir: "/lsstdata/offline/instrument/LATISS"
-  consolidated_db:
-    files_table: "obs_auxtel_arc_files"
-    file_events_table: "obs_auxtel_arc_gen3_file_events"
-  efd:
-    tables:
-      archiver: 'lsst.sal.ATArchiver.logevent_imageRetrievalForArchiving'
-      camera: 'lsst.sal.ATCamera.logevent_endReadout'
-- name: "comcam_arc"
-  data_dir: "/lsstdata/offline/instrument/LSSTComCam"
-  consolidated_db:
-    files_table: "obs_comcam_arc_files"
-    file_events_table: "obs_comcam_arc_gen3_file_events"
-  efd:
-    tables:
-      archiver: 'lsst.sal.CCArchiver.logevent_imageRetrievalForArchiving'
-      camera: 'lsst.sal.CCCamera.logevent_endReadout'
-
-# - name: "nts_auxtel"
-#   data_dir: "/lsstdata/offline/teststand/NCSA_auxTel"
-#   files_table: "nts_auxtel_files"
-#   file_events_table: "nts_auxtel_gen3_file_events"
-#   efd:
-#     table: ""
-#     columns: []
-# - name: "nts_comcam"
-#   data_dir: "/lsstdata/offline/teststand/NCSA_comcam"
-#   files_table: "nts_comcam_files"
-#   file_events_table: "nts_comcam_gen3_file_events"
-#   efd:
-#     table: ""
-#     columns: []
-# - name: "bot"
-#   data_dir: "/lsstdata/offline/instrument/LSSTCam-bot"
-#   files_table: "slac_bot_files"
-#   file_events_table: "slac_bot_gen3_file_events"
-#   efd:
-#     table: ""
-#     columns: []
-
-'''
-
 
 class TransferIngestMonitor:
     def __init__(self, config):
@@ -151,7 +88,6 @@ class TransferIngestMonitor:
         try:
             with open(config['source_config'], 'r') as conf_file:
                 data_sources = yaml.safe_load(conf_file)
-                data_sources = yaml.safe_load(values_dev)
                 self.data_source = [src for src in data_sources if src['name'] == config['source_name']][0]
         except Exception as e:
             log.error(str(e))
@@ -330,103 +266,77 @@ class TransferIngestMonitor:
                     self.nfiles += 1
                     dirfile += 1
 
-    async def get_images_taken(self):
 
-        client = EfdClient('ldf_stable_efd')
-        cl = client.influx_client
+    async def query_efd(self):
+
         
         first_nite = Time(f'{self.first_day.strftime("%Y-%m-%d")}T00:00:00', scale='tai')
         last_nite  = Time(f'{self.last_day.strftime("%Y-%m-%d")}T00:00:00', scale='tai')
         self.image_data = []
+        self.images_missing_in_archiver = []
         try:
             table_name_archiver = self.data_source['efd']['tables']['archiver']
             table_name_camera = self.data_source['efd']['tables']['camera']
-        except:
-            return
-        query = f'''
-            SELECT 
-                "obsid",
-                "raft",
-                "sensor"
-            FROM "efd"."autogen"."{table_name_archiver}"
-            WHERE time >= '{first_nite.isot}Z' AND time < '{last_nite.isot}Z'
-        '''
-        # log.debug(query)
-        result = await cl.query(query)
-
-        if len(result) > 0:
-            for index, row in result.iterrows():
-                log.debug(f'Row {index}:\n{row}')
-                try:
-                    filename = f'''{row['obsid']}-R{row['raft']}S{row['sensor']}.fits'''
-                    obsid = row['obsid']
-                    query2 = f'''
-                        SELECT 
-                            "imageName",
-                            "timestampEndOfReadout"
-                        FROM "efd"."autogen"."{table_name_camera}"
-                        WHERE imageName = '{obsid}'
-                    '''
-                    # log.debug(query2)
-                    result2 = await cl.query(query2)
-                                
-                    if len(result2) > 0:
-                        for index, row2 in result2.iterrows():
-                            log.debug(f'Row {index}:\n{row2}')
-                            try:
-                                creation_time = row2['timestampEndOfReadout']
-                                self.image_data.append({
-                                    'timestamp': creation_time,
-                                    'created_time': datetime.fromtimestamp(creation_time).strftime("%Y-%m-%dT%H:%M:%S"),
-                                    'filename': filename,
-                                    'imageName': obsid,
-                                })
-                                log.debug(f'{self.image_data[-1]}')
-                            except Exception as e:
-                                log.error(f'Error displaying row: {str(e)}')
-                except Exception as e:
-                    log.error(f'Error displaying row: {str(e)}')
-
-    async def get_creation_times(self):
-
-        client = EfdClient('ldf_stable_efd')
-        cl = client.influx_client
-        nite_time = Time(f'{self.nite}T00:00:00', scale='tai')
-        self.image_data = []
-        log.debug('GET CREATION TIMES:')
-        log.debug(f'{self.name}: {self.nite}')
-        try:
-            table_name = self.data_source['efd']['table']
+            cl = EfdClient(self.data_source['efd']['host']).influx_client
         except:
             return
         query = f'''
             SELECT 
                 "imageName",
-                "raft",
-                "sensor"
-            FROM "efd"."autogen"."{table_name}" 
-            WHERE time >= '{nite_time.isot}Z'
+                "timestampEndOfReadout"
+            FROM "efd"."autogen"."{table_name_camera}"
+            WHERE time >= '{first_nite.isot}Z' AND time < '{last_nite.isot}Z'
         '''
         # log.debug(query)
         result = await cl.query(query)
-
+        # For each image taken by the camera, find the associated record in the archiver
         if len(result) > 0:
             for index, row in result.iterrows():
                 log.debug(f'Row {index}:\n{row}')
                 try:
-                    # filename = re.sub(r'(.+) is successfully transferred.*', r'\1', row[name_col_name]).strip()
-                    filename = f'''{row['imageName']}-R{row['raft']}S{row['sensor']}.fits'''
-                    log.debug(f'Filename: {filename}')
-                    self.image_data.append({
-                        'created_time': datetime.fromtimestamp(row['timestampEndOfReadout']).strftime("%m-%d-%YT%H:%M:%S"),
-                        'filename': filename,
-                    })
+                    imageName = row['imageName']
+                    creation_timestamp = row['timestampEndOfReadout']
+                    creation_time = datetime.fromtimestamp(creation_timestamp).strftime("%Y-%m-%dT%H:%M:%S")
+                    query2 = f'''
+                        SELECT 
+                            "obsid",
+                            "raft",
+                            "sensor"
+                        FROM "efd"."autogen"."{table_name_archiver}"
+                        WHERE obsid = '{imageName}' AND raft != '' AND sensor != ''
+                    '''
+                    # log.debug(query2)
+                    result2 = await cl.query(query2)
+# 
+                    if len(result2) > 0:
+                        for index, row2 in result2.iterrows():
+                            log.debug(f'Row {index}:\n{row2}')
+                            try:
+                                zero_pad_sensor = '0' if len(row2['sensor']) == 1 else ''
+                                zero_pad_raft = '0' if len(row2['raft']) == 1 else ''
+                                filename = f'''{row2['obsid']}{self.data_source['filename']['raft_separator']}R{zero_pad_raft}{row2['raft']}{self.data_source['filename']['sensor_separator']}S{zero_pad_sensor}{row2['sensor']}.fits'''
+                                self.image_data.append({
+                                    'timestamp': creation_timestamp,
+                                    'created_time': creation_time,
+                                    'filename': filename,
+                                    'imageName': imageName,
+                                })
+                                log.debug(f'{self.image_data[-1]}')
+                            except Exception as e:
+                                log.error(f'Error displaying row: {str(e)}')
+                    else:
+                        # If the image is not found in the archiver, this is probably an error that should be reported.
+                        self.images_missing_in_archiver.append({
+                            'imageName': imageName,
+                        })
                 except Exception as e:
                     log.error(f'Error displaying row: {str(e)}')
+        if self.images_missing_in_archiver:
+            log.warning(f'''Images missing in archiver table:\n{self.images_missing_in_archiver}''')
 
-    def count_files_gen3(self):
+    def query_consolidated_db(self):
 
-        def getnite(indate):
+        def parse_date_from_path(indate):
             if len(indate) == 8:
                 if indate.isdigit():
                     return indate[:4]+'-'+indate[4:6]+'-'+indate[6:8]
@@ -435,6 +345,7 @@ class TransferIngestMonitor:
                     return indate[:4]+'-'+indate[5:7]+'-'+indate[8:10]
             return ''
 
+        # For efficiency, query consolidated db for all files with names that include the dates in the current search range.
         daystr = (self.first_day).strftime('%Y%m%d')
         filename_condition = f"""filename LIKE '%%{daystr}%%.fits'"""
         for day in range(1,self.num_days):
@@ -453,7 +364,9 @@ class TransferIngestMonitor:
                     status, 
                     added_on, 
                     start_time, 
-                    err_message 
+                    err_message,
+                    duration,
+                    size_bytes
                 FROM 
                     {self.data_source['consolidated_db']['files_table']}, 
                     {self.data_source['consolidated_db']['file_events_table']}
@@ -477,7 +390,9 @@ class TransferIngestMonitor:
             status, 
             CAST(CAST(added_on as timestamp) as varchar(25)) as ttime, 
             CAST(CAST(start_time as timestamp) as varchar(25)) as itime, 
-            err_message 
+            err_message,
+            duration,
+            size_bytes
         FROM 
             ne, 
             max 
@@ -496,32 +411,56 @@ class TransferIngestMonitor:
         df = pd.read_sql(query, engine)
         log.debug(f'query: {query}')
         log.debug(f'Results:\n{df}')
+        
+        # TODO: remove ctimes
+        # self.ctimes = np.array(len(df)*['0000-00-00T00:00:00.00'])
+        
+        # Basic metadata
+        self.ids = np.array(df['id'], dtype=int)
         self.paths = np.array(df['path'])
         self.filenames = np.array(df['filename'])
-        self.ids = np.array(df['id'], dtype=int)
+        
+        # nites captures a simplified timestamp for the day on which the DBB Endpoint Manager DB discovered the file
         self.nites = np.array(len(df)*['0000-00-00'])
+        
+        # Status of ingest attempt
         self.statuss = np.array(df['status'])
-        self.ctimes = np.array(len(df)*['0000-00-00T00:00:00.00'])
+
+        # ttime is the time the file was discovered by the DBB Endpoint Manager DB
         self.ttimes = np.array(df['ttime'])
+
+        # itime is the start time of the most recent event. Usually, there are three events for each file:
+        # (1) file was added to the "waiting list", status UNTRIED;
+        # (2) file was selected for ingestion, status: PENDING;
+        # (3) ingest attempt was made, status can be either SUCCESS, FAILURE, or UNKNOWN. Each event is timed individually.
         self.itimes = np.array(df['itime'])
-        self.filesizes = np.zeros(len(df), dtype=int)
+
+        # Duration is how long the ingestion took (usually negligible)
+        self.durations = np.array(df['duration'])
+
+        # File size
+        self.filesizes = np.array(df['size_bytes'])
+        # Error message associated with FAILURE events
         self.err_messages = np.array(df['err_message'])
         self.err_messages[self.err_messages == None] = ''
+        
+        # Process each record
         for num in range(len(df)):
             full_path = os.path.join(self.storage, self.paths[num])
             self.ttimes[num] = self.ttimes[num].replace(' ', 'T')
             self.itimes[num] = self.itimes[num].replace(' ', 'T')
-            self.nites[num] = (datetime.strptime(self.ttimes[num], '%Y-%m-%dT%H:%M:%S.%f')-timedelta(hours=12)).strftime('%Y-%m-%d')
-            if os.path.exists(full_path):
-               self.filesizes[num] = (os.stat(full_path).st_size)
-               self.ctimes[num] = datetime.utcfromtimestamp(os.lstat(full_path).st_ctime).strftime('%Y-%m-%dT%H:%M:%S.%f')
-               if self.ctimes[num] < self.ttimes[num]:
-                   self.nites[num] = (datetime.strptime(self.ctimes[num], '%Y-%m-%dT%H:%M:%S.%f')-timedelta(hours=12)).strftime('%Y-%m-%d')
-            else:
-               log.debug(full_path+" not found.")
-            nite = getnite(self.paths[num].split('/')[0])
-            if nite != '':
-               self.nites[num] = nite
+            if not os.path.exists(full_path):
+            #    self.filesizes[num] = (os.stat(full_path).st_size)
+            # TODO: remove ctimes
+            #    self.ctimes[num] = datetime.utcfromtimestamp(os.lstat(full_path).st_ctime).strftime('%Y-%m-%dT%H:%M:%S.%f')
+            #    if self.ctimes[num] < self.ttimes[num]:
+            #        self.nites[num] = (datetime.strptime(self.ctimes[num], '%Y-%m-%dT%H:%M:%S.%f')-timedelta(hours=12)).strftime('%Y-%m-%d')
+            # else:
+                log.warning(f'''File path not found: "{full_path}"''')
+            # Determine the date of the transfer from the file path. If not
+            self.nites[num] = parse_date_from_path(self.paths[num].split('/')[0])
+            if not self.nites[num]:
+                self.nites[num] = (datetime.strptime(self.ttimes[num], '%Y-%m-%dT%H:%M:%S.%f')-timedelta(hours=12)).strftime('%Y-%m-%d')
 
     def count_links(self):
         self.ltimes = []
@@ -671,22 +610,23 @@ class TransferIngestMonitor:
         if len(self.filenames) > 0:
             log.info(f"Inserted or replaced {len(self.filenames)} into TRANSFER_LIST.")
 
-    def update_db_gen3(self):
+    def update_monitor_db(self):
         conn = sqlite3.connect(self.db)
         c = conn.cursor()
         # log.debug(f'IDs: {self.ids}')
         # log.debug(f'''Image search: "{[image['filename'] for image in self.image_data]}"''')
         images_recorded = 0
         for image in self.image_data:
+            log.debug(f'''Image search. Image : "{image}"''')
+            # Cross-match the consolidated db records with the EFD image data records
             search = [idx for idx, filename in enumerate(self.filenames) if image['filename'] == filename ]
             if not search:
+                log.warning(f'''Image file not found in consolidated db: "{image['filename']}"''')
                 continue
             if len(search) > 1:
-                log.warning(f'More than one filename matches the image: {search}')
+                log.warning(f'''More than one filename matches the image "{image['filename']}":\n{search}''')
+            # Insert or update the file information in the monitor db
             idx = search[0]
-            log.debug(f'''Image search. Image : "{image}"''')
-            created_time = image['created_time']
-            log.debug(f'   Created time: {created_time}')
             query = f'''
                 INSERT OR REPLACE INTO FILE_LIST_GEN3 (
                     Filenum, 
@@ -719,7 +659,7 @@ class TransferIngestMonitor:
                 'now': self.nowstr,
                 'paths': self.paths[idx],
                 'statuss': self.statuss[idx],
-                'created_time': created_time,
+                'created_time': image['created_time'],
                 'ttimes': self.ttimes[idx],
                 'itimes': self.itimes[idx],
                 'filesizes': str(self.filesizes[idx]),
@@ -755,7 +695,7 @@ class TransferIngestMonitor:
         if len(self.lpaths) > 0:
             log.info(f"Inserted or replaced {len(self.lpaths)} into INGEST_LIST.")
 
-    def get_night_data_gen3(self):
+    def compile_info_per_night(self):
         conn = sqlite3.connect(self.db)
         c = conn.cursor()
         sizemin = '10000'
@@ -1007,12 +947,12 @@ async def main():
             tim.update_nite_html()
         tim.update_main_html()
     if tim.gen == 3:
-        await tim.get_images_taken()
-        tim.count_files_gen3()
+        await tim.query_efd()
+        tim.query_consolidated_db()
         for num in range(tim.num_days):
             tim.set_date(num)
-            tim.update_db_gen3()
-            tim.get_night_data_gen3()
+            tim.update_monitor_db()
+            tim.compile_info_per_night()
             tim.update_nite_html(gen3=True)
         tim.update_main_html(gen3=True)
     os.remove(tim.lock)

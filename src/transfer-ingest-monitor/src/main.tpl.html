@@ -5,27 +5,30 @@
 <body>
     <div class="container">
         <div class="row">
-            <h1>{{ name }} Transfer and Ingestion</h1>
+            <h1>Data source: <code>{{ name }}</code></h1>
+            <hr>
             <p>Last updated: <code>{{ nowstr }}</code></p>
-            <p class="breadcrumbs"><a href="..">Summary page</a></p>
-            <h2>Description</h2>
-            <p>"Nite Obs" is the observing night (tied to UTC-12).<br>
-                "Last Update" is the most recent UTC time that Nite Obs was checked.<br>
-                "N Files" is the number of files received at NCSA.<br>
+            <p class="breadcrumbs">Nav: <a href="..">Summary page</a> &lt; {{ name }}</p>
+            <!-- <h2>Description</h2> -->
+            <p>
+                <code>Nite Obs</code>: observing night (tied to UTC-12).<br>
+                <code>Last Update</code>: most recent UTC time that Nite Obs was checked.<br>
+                <code>N Files</code>: number of files received at NCSA.<br>
                 {%- if gen3 -%}
-                "Last Creation" is the UTC of the most recent file creation.<br>
-                "Last Discovery" is the UTC of the most recently tracked file.<br>
+                <code>Last Creation</code>: UTC of the most recent file creation.<br>
+                <code>Last Discovery</code>: UTC of the most recently tracked file.<br>
                 {%- else %}
-                "Last Transfer" is the UTC of the most recent file transfer.<br>
+                <code>Last Transfer</code>: UTC of the most recent file transfer.<br>
                 {%- endif %}
-                "N Ingest" is the number of files successfully ingested at NCSA.<br>
-                "N Small" is the number of uningested files smaller than 10K.<br>
-                "N Not Fits" is the number of uningested files that don't end in ".fits".<br>
-                "N Error" is the number of uningested ".fits" files that are greater than 10K.<br>
-                "Last Ingest" is the UTC of the most recently file ingest.<br><br>
-                {{ data }}
-            </div>
+                <code>N Ingest</code>: number of files successfully ingested at NCSA.<br>
+                <code>N Small</code>: number of uningested files smaller than 10K.<br>
+                <code>N Not Fits</code>: number of uningested files that don't end in ".fits".<br>
+                <code>N Error</code>: number of uningested ".fits" files that are greater than 10K.<br>
+                <code>Last Ingest</code>: UTC of the most recently file ingest.<br><br>
+            </p>
+            {{ data }}
         </div>
+    </div>
 </body>
 
 </html>

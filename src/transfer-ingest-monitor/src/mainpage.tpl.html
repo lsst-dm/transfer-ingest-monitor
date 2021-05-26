@@ -8,14 +8,34 @@
             <h1>NCSA/LSST Transfer and Ingestion Monitor</h1>
             <p>Last updated: <code>{{ nowstr }}</code></p>
             <p>
-                This is the summary page of the Transfer and Ingest Monitor (TIM), showing information at a glance for the past few days for each of the monitored data sources.
+                This is the summary page of the Transfer and Ingest Monitor (TIM), displaying information for the past <code>{{ num_days }}</code> nights in which data transfers occurred.
             </p>
             <p>
                 Select an individual data source to view all data available for that source. 
             </p>
             {% for stream in streams -%}
-            <h2><a href="{{ stream.link }}">{{ stream.name }}</a></h2>
-            {{ stream.data_table }}
+            
+            <table class="table-striped summary-table">
+                <thead>
+                    <tr style="border-top:3px solid black;">
+                        <th>
+                            <b><h2><a href="{{ stream.link }}">{{ stream.name }}</a></h2></b>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            {%- if stream.data_table|length > 0 %}
+                            {{ stream.data_table }}
+                            {%- else %}
+                            <p>No transfers within the past {{ num_days }} days.</p>
+                            {%- endif %}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            
             {%- endfor -%}
         </div>
     </div>

@@ -5,33 +5,35 @@
 <body>
     <div class="container">
         <div class="row">
-            <h1>{{ name }} transfer and ingestion for night of {{ nite }}</h1>
+            <h1>Data source: <code>{{ name }}</code>, Night: <code>{{ nite }}</code></h1>
+            <hr>
             <p>Last updated: <code>{{ nowstr }}</code></p>
-            <p class="breadcrumbs"><a href="..">Summary page</a> &lt; <a href=".">{{ name }}</a> &lt; {{ nite }}</p>
-            <h2>Description</h2>
+            <p class="breadcrumbs">Nav: <a href="..">Summary page</a> &lt; <a href=".">{{ name }}</a> &lt; {{ nite }}</p>
+            <!-- <h2>Description</h2> -->
             <p>
                 {%- if gen3 -%}
-                "Transfer Path" is the path of the transferred file at NCSA with root {{ storage }}.<br>
-                "Status" is the result of the most recent ingestion attempt.<br>
-                "File Size" is measured in bytes.<br>
-                "Creation Time" is the UTC the file was created (approximate).<br>
-                "Discovery Time" is the UTC the file was discovered for tracking.<br>
-                "Ingest Time" is the UTC of the file ingestion at NCSA.<br>
-                "Delta Time 1" is the time (in seconds) between Creation and Transfer to NCSA (creation and transfer times are approximate).<br>
-                "Delta Time 2" is the time (in seconds) between Transfer and Ingestion to NCSA (ingestion and transfer times are approximate).<br>
-                "Err Message" is the Error Message from a failed ingestion attempt (if the most recent attempt failed).<br>
+                <code>Transfer Path</code>: path of the transferred file at NCSA with root <code>{{ storage }}</code>.<br>
+                <code>Status</code>: result of the most recent ingestion attempt.<br>
+                <code>File Size</code>: measured in bytes.<br>
+                <code>Creation Time</code>: UTC the file was created (approximate).<br>
+                <code>Discovery Time</code>: UTC the file was discovered for tracking.<br>
+                <code>Ingest Time</code>: UTC of the file ingestion at NCSA.<br>
+                <code>Delta Time 1</code>: time (in seconds) between Creation and Transfer to NCSA (creation and transfer times are approximate).<br>
+                <code>Delta Time 2</code>: time (in seconds) between Transfer and Ingestion to NCSA (ingestion and transfer times are approximate).<br>
+                <code>Err Message</code>: Error Message from a failed ingestion attempt (if the most recent attempt failed).<br>
                 {%- else %}
-                "Transfer Path" is the path of the transferred file at NCSA with root {{ storage }}.<br>
-                "File Size" is measured in bytes.<br>
-                "Transfer Time" is the UTC the file was transferred.<br>
-                "Ingest Path" is the path of the transferred file at NCSA with root {{ repo_dir }}.<br>
-                "Ingest Time" is the UTC of the file ingestion at NCSA.<br>
-                "Delta Time" is the time (in seconds) between Creation and ingestion at NCSA (approximate transfer time).<br>
+                <code>Transfer Path</code>: path of the transferred file at NCSA with root <code>{{ storage }}</code>.<br>
+                <code>File Size</code> is measured in bytes.<br>
+                <code>Transfer Time</code>: UTC the file was transferred.<br>
+                <code>Ingest Path</code>: path of the transferred file at NCSA with root <code>{{ repo_dir }}</code>.<br>
+                <code>Ingest Time</code>: UTC of the file ingestion at NCSA.<br>
+                <code>Delta Time</code>: time (in seconds) between Creation and ingestion at NCSA (approximate transfer time).<br>
                 {%- endif %}
                 <br>
-                {{ data }}
-            </div>
+            </p>
+            {{ data }}
         </div>
-    </body>
+    </div>
+</body>
 
 </html>

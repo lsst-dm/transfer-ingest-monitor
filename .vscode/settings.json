@@ -1,0 +1,7 @@
+{
+    "python.analysis.extraPaths": [
+        "src/transfer-ingest-monitor/src",
+    ],
+    "restructuredtext.confPath": "${workspaceFolder}/docs"
+  }
+  
