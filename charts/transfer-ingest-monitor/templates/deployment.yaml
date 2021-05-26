@@ -59,7 +59,7 @@ spec:
           claimName: nfs-data-nts-pvc
       - name: data-sources-config
         configMap:
-          name: data-sources-config
+          name: data-sources-config-{{ .Release.Name }}
       initContainers:
       - name: init
         image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
