@@ -49,7 +49,7 @@ for indir in sys.argv[2:]:
             streams.append({
                 'name': f'''{indir.split('/')[-1]} <span style="font-size:smaller; font-variant:all-small-caps">(Gen 2)</span>''',
                 'link': f'''{indir.split('/')[-1]}/index_gen2.html''',
-                'data_table': db_to_html(db, f'select * from FILE_COUNT where Nite_Obs >= "{firstnite}" AND N_Ingest > 0 order by Nite_Obs DESC',linkify=True,prefix=f'''{indir.split('/')[-1]}/'''),
+                'data_table': db_to_html(db, f'select * from FILE_COUNT where Nite_Obs >= "{firstnite}" AND N_Ingest > 0 order by Nite_Obs DESC', linkify=True, prefix=f'''{indir.split('/')[-1]}/''', modifier='_gen2'),
             })
         if os.path.exists(f'{indir}/index.html'):
             streams.append({
