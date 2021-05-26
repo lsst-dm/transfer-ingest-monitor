@@ -45,7 +45,7 @@ spec:
         volumeMounts:
         - name: webfiles
           mountPath: /usr/share/nginx/html
-          subPath: webfiles
+          subPath: {{ .Release.Name }}-webfiles
           readOnly: true
       # Syncthing
       - name: syncthing
@@ -63,4 +63,4 @@ spec:
           mountPath: /srv/config
         - name: webfiles
           mountPath: /srv/data
-          subPath: webfiles
+          subPath: {{ .Release.Name }}-webfiles
