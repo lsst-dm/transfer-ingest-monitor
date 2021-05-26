@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: data-sources-config
+  name: data-sources-config-{{ .Release.Name }}
 data:
   data_sources.yaml: |
     {{ toYaml .Values.data_sources | nindent 4 }}
