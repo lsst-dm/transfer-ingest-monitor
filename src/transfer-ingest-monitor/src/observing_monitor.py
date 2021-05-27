@@ -142,12 +142,6 @@ class TransferIngestMonitor:
         # Initialize the output paths
         self.output_dir = Path(config['output_dir'])
         os.makedirs(self.output_dir, exist_ok=True)
-        # Check for the lock file and exit if present
-        self.lock = os.path.join(self.output_dir, '.monitor.lock')
-        if os.path.exists(self.lock):
-            log.error(f"The lock file, {self.lock} exists. This indicates that another process is running. Delete it if you think this is an error. Exiting.")
-            sys.exit(1)
-        open(self.lock, 'a').close() 
         self.html = os.path.join(self.output_dir, 'index.html')
         self.db = os.path.join(self.output_dir, 'observing_monitor.sqlite3')
         if not os.path.exists(self.output_dir):
@@ -954,7 +948,6 @@ async def main():
             tim.update_monitor_db()
             tim.compile_info_per_night()
             tim.update_nite_html(gen3=True)
-        tim.update_main_html(gen3=True)
-    os.remove(tim.lock)
+        tim.update_source_html(gen3=True)
 
 asyncio.run(main())
