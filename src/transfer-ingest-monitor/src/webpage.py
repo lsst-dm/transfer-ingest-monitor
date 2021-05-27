@@ -61,7 +61,7 @@ def db_to_html(db, query, linkify=False, modifier='', prefix=''):
             if not records:
                 return html
             # Render table template after populating with query results
-            with open(os.path.join(os.path.dirname(__file__), "table.tpl.html")) as f:
+            with open(os.path.join(os.path.dirname(__file__), "templates/table.tpl.html")) as f:
                 templateText = f.read()
             template = Template(templateText)
             html = template.render(

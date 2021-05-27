@@ -15,7 +15,7 @@ done
 
 # Render the webpage
 #
-python3 mainpage.py $WEBDIR \
+python3 render_summary_page.py $WEBDIR \
     auxtel_ccs \
     auxtel_arc \
     comcam_ccs \

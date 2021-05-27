@@ -866,7 +866,7 @@ class TransferIngestMonitor:
             ])
         try:
             # Render table template after populating with query results
-            with open(os.path.join(os.path.dirname(__file__), "nite.tpl.html")) as f:
+            with open(os.path.join(os.path.dirname(__file__), "templates/nite.tpl.html")) as f:
                 templateText = f.read()
             template = Template(templateText)
             html = template.render(
@@ -887,7 +887,7 @@ class TransferIngestMonitor:
         with open(outfilename, 'w') as outf:
             outf.write(html)
 
-    def update_main_html(self, gen3=False):
+    def update_source_html(self, gen3=False):
         file_count_table = 'FILE_COUNT'
         outfilename = f'{self.output_dir}/index_gen2.html'
         modifier = '_gen2'
@@ -897,7 +897,7 @@ class TransferIngestMonitor:
             modifier = ''
         try:
             # Render table template after populating with query results
-            with open(os.path.join(os.path.dirname(__file__), "main.tpl.html")) as f:
+            with open(os.path.join(os.path.dirname(__file__), "templates/source.tpl.html")) as f:
                 templateText = f.read()
             template = Template(templateText)
             html = template.render(
@@ -939,7 +939,7 @@ async def main():
             tim.set_date(num)
             tim.get_night_data()
             tim.update_nite_html()
-        tim.update_main_html()
+        tim.update_source_html()
     if tim.gen == 3:
         await tim.query_efd()
         tim.query_consolidated_db()

@@ -22,7 +22,7 @@ except:
     log.setLevel('DEBUG')
 
 if len(sys.argv) < 2:
-    print("mainpage.py output indir1 indir2...")
+    print("render_summary_page.py output indir1 indir2...")
     print("output is the output directory webpage")
     print("indir are output dirs written to by observing_monitor.py")
     print("If indirs do not begin with a '/' they are assumed to be appended on output")
@@ -61,7 +61,7 @@ for indir in sys.argv[2:]:
         log.error(f'{str(e)}')
 try:
     # Render table template after populating with query results
-    with open(os.path.join(os.path.dirname(__file__), "mainpage.tpl.html")) as f:
+    with open(os.path.join(os.path.dirname(__file__), "templates/summary.tpl.html")) as f:
         templateText = f.read()
     template = Template(templateText)
     html = template.render(
