@@ -406,9 +406,6 @@ class TransferIngestMonitor:
         log.debug(f'query: {query}')
         log.debug(f'Results:\n{df}')
         
-        # TODO: remove ctimes
-        # self.ctimes = np.array(len(df)*['0000-00-00T00:00:00.00'])
-        
         # Basic metadata
         self.ids = np.array(df['id'], dtype=int)
         self.paths = np.array(df['path'])
@@ -444,12 +441,6 @@ class TransferIngestMonitor:
             self.ttimes[num] = self.ttimes[num].replace(' ', 'T')
             self.itimes[num] = self.itimes[num].replace(' ', 'T')
             if not os.path.exists(full_path):
-            #    self.filesizes[num] = (os.stat(full_path).st_size)
-            # TODO: remove ctimes
-            #    self.ctimes[num] = datetime.utcfromtimestamp(os.lstat(full_path).st_ctime).strftime('%Y-%m-%dT%H:%M:%S.%f')
-            #    if self.ctimes[num] < self.ttimes[num]:
-            #        self.nites[num] = (datetime.strptime(self.ctimes[num], '%Y-%m-%dT%H:%M:%S.%f')-timedelta(hours=12)).strftime('%Y-%m-%d')
-            # else:
                 log.warning(f'''File path not found: "{full_path}"''')
             # Determine the date of the transfer from the file path. If not
             self.nites[num] = parse_date_from_path(self.paths[num].split('/')[0])
