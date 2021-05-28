@@ -326,7 +326,17 @@ class TransferIngestMonitor:
         c = conn.cursor()
         for image in images:
             c.execute(f'''
-                INSERT OR REPLACE INTO IMAGE_DATA (
+                DELETE FROM IMAGE_DATA WHERE
+                    EfdHost = '{image['efd_host']}' AND
+                    CameraTable = '{self.data_source['efd']['tables']['camera']}' AND
+                    ArchiverTable = '{self.data_source['efd']['tables']['archiver']}' AND
+                    ImageName = '{image['image_name']}' AND
+                    ImageFileName = '{image['filename']}' AND
+                    Creation_Time = '{image['creation_time']}' AND
+                    Nite = '{image['nite']}'
+            ''')
+            c.execute(f'''
+                INSERT INTO IMAGE_DATA (
                     EfdHost,
                     CameraTable,
                     ArchiverTable,
@@ -373,6 +383,7 @@ class TransferIngestMonitor:
         self.filenames = {}
         self.nites = {}
         self.statuss = {}
+        self.ctimes = {}
         self.ttimes = {}
         self.itimes = {}
         self.durations = {}
@@ -451,6 +462,9 @@ class TransferIngestMonitor:
                 # nites captures a simplified timestamp for the day on which the DBB Endpoint Manager DB discovered the file
                 self.nites[gen] = np.array(len(df)*['0000-00-00'])
                 
+                # ctimes is a placeholder for the image creation time
+                self.ctimes[gen] = np.array(len(df)*['0000-00-00T00:00:00'])
+                
                 # Status of ingest attempt
                 self.statuss[gen] = np.array(df['status'])
 
@@ -489,31 +503,30 @@ class TransferIngestMonitor:
         c = conn.cursor()
         # log.debug(f'IDs: {self.ids}')
         # log.debug(f'''Image search: "{[image['filename'] for image in self.image_data]}"''')
-        images_recorded = 0
+        images_recorded = {
+            2: 0,
+            3: 0,
+        }
         images_not_in_transfers = []
         for image in self.image_data:
-            # Cross-match the consolidated db records with the EFD image data records
-            search = {}
-            search[2] = [idx for idx, filename in enumerate(self.filenames[2]) if image['filename'] == filename ]
-            search[3] = [idx for idx, filename in enumerate(self.filenames[3]) if image['filename'] == filename ]
-            if search[2] or search[3]:
-                query = f'''
-                    UPDATE IMAGE_DATA SET InTransfers = 1 WHERE ImageFileName = '{image['filename']}'
-                    '''
-                c.execute(query)
-                conn.commit()
-            else:
-                images_not_in_transfers.append(image['filename'])
-                log.warning(f'''Image file not found in consolidated db: "{image['filename']}"''')
-            # log.debug(f'''Image search. Image : "{image}"''')
             for gen in [2, 3]:
-                if len(search[gen]) > 1:
-                    log.warning(f'''(gen{gen}) More than one filename matches the image "{image['filename']}":\n{search[gen]}''')
+                # Cross-match the consolidated db records with the EFD image data records
+                search = [idx for idx, filename in enumerate(self.filenames[gen]) if image['filename'] == filename ]
+                if search:
+                    query = f'''
+                        UPDATE IMAGE_DATA SET InTransfers = 1 WHERE ImageFileName = '{image['filename']}'
+                        '''
+                    c.execute(query)
+                    conn.commit()
+                    self.ctimes[gen][search[0]] = image['creation_time']
+                elif image['filename'] not in images_not_in_transfers:
+                    images_not_in_transfers.append(image['filename'])
+                    log.warning(f'''Image file not found in consolidated db: "{image['filename']}"''')
+                if len(search) > 1:
+                    log.warning(f'''(gen{gen}) More than one filename matches the image "{image['filename']}":\n{search}''')
+        for gen in [2, 3]:
+            for idx in range(len(self.filenames[gen])):
                 # Insert or update the file information in the monitor db
-                try:
-                    idx = search[gen][0]
-                except:
-                    continue
                 query = f'''
                     INSERT OR REPLACE INTO FILE_LIST_GEN{gen} (
                         Filenum, 
@@ -533,7 +546,7 @@ class TransferIngestMonitor:
                         :now,
                         :paths,
                         :statuss,
-                        :creation_time,
+                        :ctimes,
                         :ttimes,
                         :itimes,
                         :filesizes, 
@@ -547,18 +560,18 @@ class TransferIngestMonitor:
                     'now': self.nowstr,
                     'paths': self.paths[gen][idx],
                     'statuss': self.statuss[gen][idx],
-                    'creation_time': image['creation_time'],
+                    'ctimes': self.ctimes[gen][idx],
                     'ttimes': self.ttimes[gen][idx],
                     'itimes': self.itimes[gen][idx],
                     'filesizes': str(self.filesizes[gen][idx]),
                     'errmsg': self.err_messages[gen][idx],
                     'gen': f'gen{gen}',
                 })
-                images_recorded += 1
+                images_recorded[gen] += 1
                 conn.commit()
+            if len(self.ids[gen]) > 0:
+                log.info(f"Inserted or replaced {images_recorded[gen]} into FILE_LIST_GEN2 and FILE_LIST_GEN3.")
         conn.close()
-        if len(self.ids) > 0:
-            log.info(f"Inserted or replaced {images_recorded} into FILE_LIST_GEN2 and FILE_LIST_GEN3.")
 
     def compile_info_per_night(self):
         conn = sqlite3.connect(self.db)

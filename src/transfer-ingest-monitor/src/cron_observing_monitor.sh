@@ -4,7 +4,7 @@ set -x
 #
 
 # data_sources=("auxtel_ccs" "auxtel_arc" "comcam_ccs" "comcam_arc" "nts_auxtel" "nts_comcam" "bot")
-data_sources=("auxtel_ccs" "auxtel_arc" "comcam_ccs" "comcam_arc" "nts_auxtel" "nts_comcam")
+data_sources=("comcam_ccs" "comcam_arc" "auxtel_ccs" "auxtel_arc" "nts_auxtel" "nts_comcam")
 # data_sources=("comcam_ccs")
 for data_source in "${data_sources[@]}"; do
     python3 observing_monitor.py \
