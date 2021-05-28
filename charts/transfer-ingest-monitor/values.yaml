@@ -74,8 +74,8 @@ data_sources:
       archiver: 'lsst.sal.ATArchiver.logevent_imageRetrievalForArchiving'
       camera: 'lsst.sal.ATCamera.logevent_endReadout'
   filename:
-    raft_separator: '_'
-    sensor_separator: '_'
+    raft_separator: '-'
+    sensor_separator: ''
 - name: "comcam_arc"
   data_dir: "/lsstdata/offline/instrument/LSSTComCam"
   consolidated_db:
@@ -93,8 +93,8 @@ data_sources:
       archiver: 'lsst.sal.CCArchiver.logevent_imageRetrievalForArchiving'
       camera: 'lsst.sal.CCCamera.logevent_endReadout'
   filename:
-    raft_separator: '_'
-    sensor_separator: '_'
+    raft_separator: '-'
+    sensor_separator: ''
 - name: "nts_comcam"
   data_dir: "/lsstdata/offline/teststand/NCSA_comcam"
   consolidated_db:
