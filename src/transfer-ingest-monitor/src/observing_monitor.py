@@ -382,107 +382,107 @@ class TransferIngestMonitor:
         for gen in [2, 3]:
             log.debug(f'''\n**********************************\nquery_consolidated_db: gen{gen}\n**********************************\n''')
             files_table = self.data_source['consolidated_db'][f'gen{gen}']['files_table']
-            file_events_tables = ','.join(self.data_source['consolidated_db'][f'gen{gen}']['file_events_tables'])
-        
-            query = f'''
-            set TIMEZONE='UTC'; 
-            WITH 
-                ne AS (
-                    SELECT 
-                        id, 
-                        filename,
-                        relpath||'/'||filename as path, 
-                        status, 
-                        added_on, 
-                        start_time, 
-                        err_message,
-                        duration,
-                        size_bytes
-                    FROM 
-                        {files_table}, 
-                        {file_events_tables}
-                    WHERE 
-                        files_id = id 
-                        AND (
-                            {filename_condition}
-                        )
-                ),  
-                max AS (
-                    SELECT 
-                        id as mid, 
-                        max(start_time) as mtime 
-                    FROM ne 
-                    GROUP BY id
-                ) 
-            SELECT 
-                id, 
-                filename,
-                path, 
-                status, 
-                CAST(CAST(added_on as timestamp) as varchar(25)) as ttime, 
-                CAST(CAST(start_time as timestamp) as varchar(25)) as itime, 
-                err_message,
-                duration,
-                size_bytes
-            FROM 
-                ne, 
-                max 
-            WHERE 
-                id = mid 
-                AND 
-                mtime = start_time
-            '''
-            db = {
-                'user': os.environ['PG_USERNAME'],
-                'host': os.environ['PG_HOST'],
-                'port': os.environ['PG_PORT'],
-                'db': os.environ['PG_DATABASE'],
-            }
-            engine = sqlalchemy.create_engine(f'''postgresql://{db['user']}@{db['host']}:{db['port']}/{db['db']}''')
-            df = pd.read_sql(query, engine)
-            log.debug(f'query: {query}')
-            log.debug(f'Results:\n{df}')
-            
-            # Basic metadata
-            self.ids[gen] = np.array(df['id'], dtype=int)
-            self.paths[gen] = np.array(df['path'])
-            self.filenames[gen] = np.array(df['filename'])
-            
-            # nites captures a simplified timestamp for the day on which the DBB Endpoint Manager DB discovered the file
-            self.nites[gen] = np.array(len(df)*['0000-00-00'])
-            
-            # Status of ingest attempt
-            self.statuss[gen] = np.array(df['status'])
+            for file_events_table in self.data_source['consolidated_db'][f'gen{gen}']['file_events_tables']:
+            # file_events_tables = ','.join(self.data_source['consolidated_db'][f'gen{gen}']['file_events_tables'])
+                query = f'''
+                set TIMEZONE='UTC'; 
+                WITH 
+                    ne AS (
+                        SELECT 
+                            id, 
+                            filename,
+                            relpath||'/'||filename as path, 
+                            status, 
+                            added_on, 
+                            start_time, 
+                            err_message,
+                            duration,
+                            size_bytes
+                        FROM 
+                            {files_table}, 
+                            {file_events_table}
+                        WHERE 
+                            files_id = id 
+                            AND (
+                                {filename_condition}
+                            )
+                    ),  
+                    max AS (
+                        SELECT 
+                            id as mid, 
+                            max(start_time) as mtime 
+                        FROM ne 
+                        GROUP BY id
+                    ) 
+                SELECT 
+                    id, 
+                    filename,
+                    path, 
+                    status, 
+                    CAST(CAST(added_on as timestamp) as varchar(25)) as ttime, 
+                    CAST(CAST(start_time as timestamp) as varchar(25)) as itime, 
+                    err_message,
+                    duration,
+                    size_bytes
+                FROM 
+                    ne, 
+                    max 
+                WHERE 
+                    id = mid 
+                    AND 
+                    mtime = start_time
+                '''
+                db = {
+                    'user': os.environ['PG_USERNAME'],
+                    'host': os.environ['PG_HOST'],
+                    'port': os.environ['PG_PORT'],
+                    'db': os.environ['PG_DATABASE'],
+                }
+                engine = sqlalchemy.create_engine(f'''postgresql://{db['user']}@{db['host']}:{db['port']}/{db['db']}''')
+                df = pd.read_sql(query, engine)
+                log.debug(f'query: {query}')
+                log.debug(f'Results:\n{df}')
+                
+                # Basic metadata
+                self.ids[gen] = np.array(df['id'], dtype=int)
+                self.paths[gen] = np.array(df['path'])
+                self.filenames[gen] = np.array(df['filename'])
+                
+                # nites captures a simplified timestamp for the day on which the DBB Endpoint Manager DB discovered the file
+                self.nites[gen] = np.array(len(df)*['0000-00-00'])
+                
+                # Status of ingest attempt
+                self.statuss[gen] = np.array(df['status'])
 
-            # ttime is the time the file was discovered by the DBB Endpoint Manager DB
-            self.ttimes[gen] = np.array(df['ttime'])
+                # ttime is the time the file was discovered by the DBB Endpoint Manager DB
+                self.ttimes[gen] = np.array(df['ttime'])
 
-            # itime is the start time of the most recent event. Usually, there are three events for each file:
-            # (1) file was added to the "waiting list", status UNTRIED;
-            # (2) file was selected for ingestion, status: PENDING;
-            # (3) ingest attempt was made, status can be either SUCCESS, FAILURE, or UNKNOWN. Each event is timed individually.
-            self.itimes[gen] = np.array(df['itime'])
+                # itime is the start time of the most recent event. Usually, there are three events for each file:
+                # (1) file was added to the "waiting list", status UNTRIED;
+                # (2) file was selected for ingestion, status: PENDING;
+                # (3) ingest attempt was made, status can be either SUCCESS, FAILURE, or UNKNOWN. Each event is timed individually.
+                self.itimes[gen] = np.array(df['itime'])
 
-            # Duration is how long the ingestion took (usually negligible)
-            self.durations[gen] = np.array(df['duration'])
+                # Duration is how long the ingestion took (usually negligible)
+                self.durations[gen] = np.array(df['duration'])
 
-            # File size
-            self.filesizes[gen] = np.array(df['size_bytes'])
-            # Error message associated with FAILURE events
-            self.err_messages[gen] = np.array(df['err_message'])
-            self.err_messages[gen][self.err_messages[gen] == None] = ''
-            
-            # Process each record
-            for num in range(len(df)):
-                full_path = os.path.join(self.storage, self.paths[gen][num])
-                self.ttimes[gen][num] = self.ttimes[gen][num].replace(' ', 'T')
-                self.itimes[gen][num] = self.itimes[gen][num].replace(' ', 'T')
-                if not os.path.exists(full_path):
-                    log.warning(f'''File path not found: "{full_path}"''')
-                # Determine the date of the transfer from the file path. If not
-                self.nites[gen][num] = parse_date_from_path(self.paths[gen][num].split('/')[0])
-                if not self.nites[gen][num]:
-                    self.nites[gen][num] = nite_from_timestring(self.ttimes[gen][num])
+                # File size
+                self.filesizes[gen] = np.array(df['size_bytes'])
+                # Error message associated with FAILURE events
+                self.err_messages[gen] = np.array(df['err_message'])
+                self.err_messages[gen][self.err_messages[gen] == None] = ''
+                
+                # Process each record
+                for num in range(len(df)):
+                    full_path = os.path.join(self.storage, self.paths[gen][num])
+                    self.ttimes[gen][num] = self.ttimes[gen][num].replace(' ', 'T')
+                    self.itimes[gen][num] = self.itimes[gen][num].replace(' ', 'T')
+                    if not os.path.exists(full_path):
+                        log.warning(f'''File path not found: "{full_path}"''')
+                    # Determine the date of the transfer from the file path. If not
+                    self.nites[gen][num] = parse_date_from_path(self.paths[gen][num].split('/')[0])
+                    if not self.nites[gen][num]:
+                        self.nites[gen][num] = nite_from_timestring(self.ttimes[gen][num])
 
     def update_monitor_db(self):
         conn = sqlite3.connect(self.db)

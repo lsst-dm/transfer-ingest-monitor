@@ -44,7 +44,7 @@ data_sources:
       files_table: "obs_comcam_ccs_files"
       file_events_tables:
       - "obs_comcam_ccs_c_gen3_file_events"
-      #- "obs_comcam_ccs_o_gen3_file_events"
+      - "obs_comcam_ccs_o_gen3_file_events"
     gen2:
       files_table: "obs_comcam_ccs_files"
       file_events_tables:
