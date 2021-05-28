@@ -5,7 +5,7 @@
 <body>
     <div class="container">
         <div class="row">
-            <h1>Data source: <code>{{ name }}</code>, Night: <code>{{ nite }}</code></h1>
+            <h1>Data source: <code>{{ name }}</code>, Gen <code>{%- if gen3 -%}3{%- else %}2{%- endif %}</code>, Night: <code>{{ nite }}</code></h1>
             <hr>
             <p>Last updated: <code>{{ nowstr }}</code></p>
             <p class="breadcrumbs">Nav: <a href="..">Summary page</a> &lt; <a href={%- if gen3 -%}"."{%- else %}"./index_gen2.html"{%- endif %}>{{ name }}</a> &lt; {{ nite }}</p>

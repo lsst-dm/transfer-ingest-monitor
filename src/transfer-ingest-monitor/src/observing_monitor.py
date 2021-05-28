@@ -739,8 +739,9 @@ class TransferIngestMonitor:
                         self.db,
                         f'''select * from {file_count_table} ORDER by Nite_Obs DESC''',
                         linkify=True,
-                        modifier=modifier
-                    )
+                        modifier=modifier,
+                    ),
+                    gen3=gen == 3,
                 )
                 # log.debug(f'{html}')
             except Exception as e:
