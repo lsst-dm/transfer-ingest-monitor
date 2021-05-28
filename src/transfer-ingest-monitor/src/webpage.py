@@ -29,7 +29,6 @@ def db_to_html(db, query, linkify=False, modifier='', prefix=''):
         
         # Extract the column labels
         columns= [description[0] for description in c.description]
-
         num_files_idx = -1
         colIdx = 0
         for col in columns:
@@ -59,6 +58,7 @@ def db_to_html(db, query, linkify=False, modifier='', prefix=''):
                 })
         try:
             if not records:
+                conn.close()
                 return html
             # Render table template after populating with query results
             with open(os.path.join(os.path.dirname(__file__), "templates/table.tpl.html")) as f:
@@ -75,4 +75,5 @@ def db_to_html(db, query, linkify=False, modifier='', prefix=''):
     except Exception as e:
         log.error(f'DB: {db}, Error message: {str(e)}')
 
+    conn.close()
     return html
