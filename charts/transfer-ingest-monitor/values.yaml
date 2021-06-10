@@ -63,7 +63,7 @@ data_sources:
     gen3:
       files_table: "obs_auxtel_arc_files"
       file_events_tables:
-      - "obs_auxtel_arc_gen3_file_events"
+      - "obs_latiss_arc_gen3_file_events"
     gen2:
       files_table: "obs_auxtel_arc_files"
       file_events_tables:
