@@ -1,2 +1,3 @@
 .secrets
 .codesync
+__pycache__
