@@ -1,23 +1,23 @@
-    <table class="table table-striped">
-        <thead>
-            <tr style="border-top:3px solid black; border-bottom:3px solid black;">
-                {% for header in headers -%}
-                <th><b>{{ header }}</b></th>
-                {%- endfor %}
-            </tr>
-        </thead>
-        <tbody>
-            {% for record in records -%}
-            <tr>
-                {%- if record.linkify %}
-                <td><a href="{{ record.link_url }}">{{ record.link_text }}</a></td>
-                {%- else %}
-                <td>{{ record.link_text }}</td>
-                {%- endif %}
-                {%- for val in record.vals %}
-                <td>{{ val }}</td>
-                {%- endfor %}
-            </tr>
+<table class="table table-striped" data-toggle="table" data-pagination="true" data-search="true">
+    <thead>
+        <tr style="border-top:3px solid black; border-bottom:3px solid black;">
+            {% for header in headers -%}
+            <th data-sortable="true"><b>{{ header }}</b></th>
             {%- endfor %}
-        </tbody>
-    </table>
+        </tr>
+    </thead>
+    <tbody>
+        {% for record in records -%}
+        <tr>
+            {%- if record.linkify %}
+            <td><a href="{{ record.link_url }}">{{ record.link_text }}</a></td>
+            {%- else %}
+            <td>{{ record.link_text }}</td>
+            {%- endif %}
+            {%- for val in record.vals %}
+            <td>{{ val }}</td>
+            {%- endfor %}
+        </tr>
+        {%- endfor %}
+    </tbody>
+</table>
