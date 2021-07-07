@@ -6,7 +6,8 @@ image:
   repository: lsstdm/transfer-ingest-monitor
   tag: v12
   imagePullPolicy: IfNotPresent
-monitorNumDays: 10
+monitorNumDays: 2
+summaryNumDays: 7
 db:
   host: lsst-pg-prod1.ncsa.illinois.edu
   port: 5432
@@ -15,7 +16,7 @@ db:
 # If dev mode is enabled, a static TIM deployment is included for remote debugging and code development
 devMode: false
 cronjob:
-  schedule: "*/5 * * * *"
+  schedule: "*/30 * * * *"
   
 data_sources:
 - name: "auxtel_ccs"

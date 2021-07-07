@@ -155,6 +155,8 @@ spec:
           value: "{{ .Values.logLevel }}"
         - name: "MONITOR_NUM_DAYS"
           value: "{{ .Values.monitorNumDays }}"
+        - name: "SUMMARY_NUM_DAYS"
+          value: "{{ .Values.summaryNumDays }}"
         - name: "PG_HOST"
           value: "{{ .Values.db.host }}"
         - name: "PG_PORT"

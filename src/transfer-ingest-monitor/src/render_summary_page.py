@@ -29,7 +29,7 @@ if len(sys.argv) < 2:
     sys.exit()
 # Number of days to include on the summary page
 try:
-    num_days = int(os.environ['MONITOR_NUM_DAYS'])
+    num_days = int(os.environ['SUMMARY_NUM_DAYS'])
 except:
     num_days = 30
 now = datetime.utcnow()
