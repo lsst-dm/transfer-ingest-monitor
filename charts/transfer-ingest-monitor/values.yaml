@@ -15,6 +15,8 @@ db:
   user: svclsstdb1ro
 # If dev mode is enabled, a static TIM deployment is included for remote debugging and code development
 devMode: false
+syncthing:
+  disabled: false
 cronjob:
   schedule: "*/30 * * * *"
 
