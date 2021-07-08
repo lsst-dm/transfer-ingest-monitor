@@ -5,7 +5,7 @@ set -x
 
 # data_sources=("auxtel_ccs" "auxtel_arc" "comcam_ccs" "comcam_arc" "nts_auxtel" "nts_comcam" "bot")
 data_sources=("comcam_ccs" "comcam_arc" "auxtel_ccs" "auxtel_arc" "nts_auxtel" "nts_comcam")
-# data_sources=("comcam_ccs")
+# data_sources=("comcam_ccs" "comcam_arc")
 for data_source in "${data_sources[@]}"; do
     python3 observing_monitor.py \
         --source_config /etc/config/data_sources.yaml \

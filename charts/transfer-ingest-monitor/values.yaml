@@ -17,9 +17,10 @@ db:
 devMode: false
 cronjob:
   schedule: "*/30 * * * *"
-  
+
 data_sources:
 - name: "auxtel_ccs"
+  type: "ccs"
   data_dir: "/lsstdata/offline/instrument/LATISS-ccs"
   consolidated_db:
     gen3:
@@ -32,13 +33,9 @@ data_sources:
       - "obs_auxtel_ccs_gen2_file_events"
   efd:
     host: ldf_stable_efd
-    tables:
-      archiver: 'lsst.sal.ATArchiver.logevent_imageRetrievalForArchiving'
-      camera: 'lsst.sal.ATCamera.logevent_endReadout'
-  filename:
-    raft_separator: '_'
-    sensor_separator: '_'
+    table: 'lsst.sal.ATCamera.logevent_endReadout'
 - name: "comcam_ccs"
+  type: "ccs"
   data_dir: "/lsstdata/offline/instrument/LSSTComCam-ccs"
   consolidated_db:
     gen3:
@@ -52,13 +49,9 @@ data_sources:
       - "obs_comcam_ccs_gen2_file_events"
   efd:
     host: ldf_stable_efd
-    tables:
-      archiver: 'lsst.sal.CCArchiver.logevent_imageRetrievalForArchiving'
-      camera: 'lsst.sal.CCCamera.logevent_endReadout'
-  filename:
-    raft_separator: '_'
-    sensor_separator: '_'
+    table: 'lsst.sal.CCCamera.logevent_endReadout'
 - name: "auxtel_arc"
+  type: "arc"
   data_dir: "/lsstdata/offline/instrument/LATISS"
   consolidated_db:
     gen3:
@@ -71,13 +64,9 @@ data_sources:
       - "obs_auxtel_arc_gen2_file_events"
   efd:
     host: ldf_stable_efd
-    tables:
-      archiver: 'lsst.sal.ATArchiver.logevent_imageRetrievalForArchiving'
-      camera: 'lsst.sal.ATCamera.logevent_endReadout'
-  filename:
-    raft_separator: '-'
-    sensor_separator: ''
+    table: 'lsst.sal.ATArchiver.logevent_imageRetrievalForArchiving'
 - name: "comcam_arc"
+  type: "arc"
   data_dir: "/lsstdata/offline/instrument/LSSTComCam"
   consolidated_db:
     gen3:
@@ -90,13 +79,9 @@ data_sources:
       - "obs_comcam_arc_gen2_file_events"
   efd:
     host: ldf_stable_efd
-    tables:
-      archiver: 'lsst.sal.CCArchiver.logevent_imageRetrievalForArchiving'
-      camera: 'lsst.sal.CCCamera.logevent_endReadout'
-  filename:
-    raft_separator: '-'
-    sensor_separator: ''
+    table: 'lsst.sal.CCArchiver.logevent_imageRetrievalForArchiving'
 - name: "nts_comcam"
+  type: "arc"
   data_dir: "/lsstdata/offline/teststand/NCSA_comcam"
   consolidated_db:
     gen3:
@@ -109,13 +94,9 @@ data_sources:
       - "nts_comcam_gen2_file_events"
   efd:
     host: ncsa_teststand_efd
-    tables:
-      archiver: 'lsst.sal.CCArchiver.logevent_imageRetrievalForArchiving'
-      camera: 'lsst.sal.CCCamera.logevent_endReadout'
-  filename:
-    raft_separator: '-'
-    sensor_separator: ''
+    table: 'lsst.sal.CCArchiver.logevent_imageRetrievalForArchiving'
 - name: "nts_auxtel"
+  type: "arc"
   data_dir: "/lsstdata/offline/teststand/NCSA_auxTel"
   consolidated_db:
     gen3:
@@ -128,12 +109,7 @@ data_sources:
       - "nts_auxtel_gen2_file_events"
   efd:
     host: ncsa_teststand_efd
-    tables:
-      archiver: 'lsst.sal.ATArchiver.logevent_imageRetrievalForArchiving'
-      camera: 'lsst.sal.ATCamera.logevent_endReadout'
-  filename:
-    raft_separator: '-'
-    sensor_separator: ''
+    table: 'lsst.sal.ATArchiver.logevent_imageRetrievalForArchiving'
 # - name: "bot"
 #   data_dir: "/lsstdata/offline/instrument/LSSTCam-bot"
 #   files_table: "slac_bot_files"

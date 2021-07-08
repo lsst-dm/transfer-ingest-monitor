@@ -20,20 +20,32 @@
                 <code>Delta Time 1</code>: time (in seconds) between Creation and Transfer to NCSA (creation and transfer times are approximate).<br>
                 <code>Delta Time 2</code>: time (in seconds) between Transfer and Ingestion to NCSA (ingestion and transfer times are approximate).<br>
                 <code>Err Message</code>: Error Message from a failed ingestion attempt (if the most recent attempt failed).<br>
+                <b>Note: Creation times are <i>approximate</i>, with better accuracy for Archiver sources and worse accuracy for CCS sources.</b>
                 <br>
+            </p>
+            <p>
+                {%- if missing_images -%}
+                <a href="#missingimages">Missing images were discovered. Click here to view the list.</a>
+                {%- endif %}
             </p>
             {{ data }}
         </div>
         {%- if missing_images -%}
-            <h2>Missing images</h2>
+        <div style="margin-top: 5rem;">
+            <h2 id="missingimages">Missing images</h2>
             <p>
-                The list of images below were recorded as acquired by the data source yet do not appear in the list of transferred files. It is not known whether these files were ever added to the transfer queue or if they were never recorded as files.
+                The list of images below were recorded as acquired by the data source yet do not appear in the list of transferred files. It is unknown whether these images are missing because (1) they were never recorded as files or because (2) they were never added to the transfer queue.
             </p>
             <p>
             {{ missing_images }}
             </p>
+        </div>
         {%- endif %}
     </div>
 </body>
 
+<script src="https://cdn.jsdelivr.net/npm/jquery/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/bootstrap-table@1.18.3/dist/bootstrap-table.min.js"></script>
 </html>

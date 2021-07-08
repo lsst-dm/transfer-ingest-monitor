@@ -37,3 +37,7 @@ p.breadcrumbs a {
 h2 a {
     text-decoration: none;
 }
+
+div.container {
+    max-width: 90%;
+}

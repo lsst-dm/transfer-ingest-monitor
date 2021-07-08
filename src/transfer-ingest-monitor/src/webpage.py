@@ -15,7 +15,7 @@ try:
 except:
     log.setLevel('DEBUG')
 
-def db_to_html(db, query, linkify=False, modifier='', prefix=''):
+def db_to_html(db, query, linkify=False, modifier='', prefix='', table_sortable=True):
     html = ''
     try:
         # Query database to get record table
@@ -67,7 +67,8 @@ def db_to_html(db, query, linkify=False, modifier='', prefix=''):
             html = template.render(
                 headers=columns,
                 records=records,
-                linkify=linkify
+                linkify=linkify,
+                table_sortable=table_sortable
             )
             # log.debug(f'{html}')
         except Exception as e:

@@ -50,14 +50,14 @@ for indir in sys.argv[2:]:
             streams.append({
                 'name': f'''{indir.split('/')[-1]} <span style="font-size:smaller; font-variant:all-small-caps">(Gen 2)</span>''',
                 'link': f'''{indir.split('/')[-1]}/index_gen2.html''',
-                'data_table': db_to_html(db, f'''SELECT * FROM FILE_COUNT_GEN2 WHERE Nite_Obs >= "{firstnite}" AND N_Files > 0 ORDER BY Nite_Obs DESC''', linkify=True, prefix=f'''{indir.split('/')[-1]}/''', modifier='_gen2'),
+                'data_table': db_to_html(db, f'''SELECT * FROM FILE_COUNT_GEN2 WHERE Nite_Obs >= "{firstnite}" AND N_Files > 0 ORDER BY Nite_Obs DESC''', linkify=True, prefix=f'''{indir.split('/')[-1]}/''', modifier='_gen2', table_sortable=False),
             })
             # log.debug(f'    gen2 added: {streams[-1]}')
         if os.path.exists(f'{indir}/index.html'):
             streams.append({
                 'name': f'''{indir.split('/')[-1]} <span style="font-size:smaller; font-variant:all-small-caps">(Gen 3)</span>''',
                 'link': f'''{indir.split('/')[-1]}''',
-                'data_table': db_to_html(db, f'''SELECT * FROM FILE_COUNT_GEN3 WHERE Nite_Obs >= "{firstnite}" AND N_Files > 0 ORDER BY Nite_Obs DESC''', linkify=True, prefix=f'''{indir.split('/')[-1]}/'''),
+                'data_table': db_to_html(db, f'''SELECT * FROM FILE_COUNT_GEN3 WHERE Nite_Obs >= "{firstnite}" AND N_Files > 0 ORDER BY Nite_Obs DESC''', linkify=True, prefix=f'''{indir.split('/')[-1]}/''', table_sortable=False),
             })
             log.debug(f'    gen3 added: {streams[-1]}')
     except Exception as e:

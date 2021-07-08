@@ -222,12 +222,10 @@ class TransferIngestMonitor:
             CREATE TABLE IF NOT EXISTS IMAGE_DATA (
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
                 EfdHost TEXT NOT NULL DEFAULT '',
-                CameraTable TEXT NOT NULL DEFAULT '',
-                ArchiverTable TEXT NOT NULL DEFAULT '',
+                EfdTable TEXT NOT NULL DEFAULT '',
                 ImageName TEXT NOT NULL DEFAULT '',
                 ImageFileName TEXT NOT NULL DEFAULT '',
                 Creation_Time TEXT NOT NULL DEFAULT '0000-00-00T00:00:00',
-                InArchiver INT DEFAULT 0,
                 InTransfers INT DEFAULT 0,
                 Nite TEXT NOT NULL DEFAULT '0000-00-00'
             )'''
@@ -249,87 +247,87 @@ class TransferIngestMonitor:
         first_nite = Time(f'{self.first_day.strftime("%Y-%m-%d")}T00:00:00', scale='tai')
         last_nite  = Time(f'{self.last_day.strftime("%Y-%m-%d")}T00:00:00', scale='tai')
         self.image_data = []
-        self.images_missing_in_archiver = []
         try:
-            table_name_archiver = self.data_source['efd']['tables']['archiver']
-            table_name_camera = self.data_source['efd']['tables']['camera']
+            table_name = self.data_source['efd']['table']
+            data_source_type = self.data_source['type']
             cl = EfdClient(self.data_source['efd']['host']).influx_client
         except:
             return
         # images array captures all image data obtained from the EFD
-        images = []
-        query = f'''
-            SELECT 
-                "imageName",
-                "timestampEndOfReadout"
-            FROM "efd"."autogen"."{table_name_camera}"
-            WHERE time >= '{first_nite.isot}Z' AND time < '{last_nite.isot}Z'
-        '''
-        # log.debug(query)
-        result = await cl.query(query)
-        # For each image taken by the camera, find the associated record in the archiver
-        if len(result) > 0:
-            for index, row in result.iterrows():
-                # log.debug(f'Row {index}:\n{row}')
-                # Image data record structure
-                image = {
-                    'efd_host': self.data_source['efd']['host'],
-                    'table_name_archiver': '',
-                    'table_name_camera': '',
-                    'image_name': '',
-                    'filename': '',
-                    'nite': '0000-00-00',
-                    'creation_timestamp': 0,
-                    'creation_time': '0000-00-00T00:00:00',
-                    'in_archiver': 0,
-                }
-                try:
-                    imageName = row['imageName']
-                    image['image_name'] = row['imageName']
-                    image['creation_timestamp'] = row['timestampEndOfReadout']
-                    image['creation_time'] = timestamp_to_string(image['creation_timestamp'])
-                    image['nite'] = nite_from_timestamp(image['creation_timestamp'])
-                    query2 = f'''
-                        SELECT 
-                            "obsid",
-                            "raft",
-                            "sensor"
-                        FROM "efd"."autogen"."{table_name_archiver}"
-                        WHERE obsid = '{imageName}' AND raft != '' AND sensor != ''
-                    '''
-                    # log.debug(query2)
-                    result2 = await cl.query(query2)
-                    if len(result2) > 0:
-                        for index, row2 in result2.iterrows():
-                            # log.debug(f'Row {index}:\n{row2}')
-                            try:
-                                zero_pad_sensor = '0' if len(row2['sensor']) == 1 else ''
-                                zero_pad_raft = '0' if len(row2['raft']) == 1 else ''
-                                image['filename'] = f'''{row2['obsid']}{self.data_source['filename']['raft_separator']}R{zero_pad_raft}{row2['raft']}{self.data_source['filename']['sensor_separator']}S{zero_pad_sensor}{row2['sensor']}.fits'''
-                                image['in_archiver'] = 1
-                                self.image_data.append(image)
-                                # log.debug(f'{self.image_data[-1]}')
-                            except Exception as e:
-                                log.error(f'Error displaying row: {str(e)}')
-                    else:
-                        # If the image is not found in the archiver, this is probably an error that should be reported.
-                        self.images_missing_in_archiver.append({
-                            'image_name': imageName,
-                        })
-                    images.append(image)
-                except Exception as e:
-                    log.error(f'Error displaying row: {str(e)}')
-        if self.images_missing_in_archiver:
-            log.warning(f'''Images missing in archiver table:\n{self.images_missing_in_archiver}''')
+        # images = []
+        image_template = {
+            'efd_host': self.data_source['efd']['host'],
+            'table_name': '',
+            'data_source_type': '',
+            'image_name': '',
+            'filename': '',
+            'nite': '0000-00-00',
+            'creation_timestamp': 0,
+            'creation_time': '0000-00-00T00:00:00',
+        }
+        if data_source_type == 'ccs':
+            query = f'''
+                SELECT 
+                    "imageName",
+                    "timestampEndOfReadout"
+                FROM "efd"."autogen"."{table_name}"
+                WHERE time >= '{first_nite.isot}Z' AND time < '{last_nite.isot}Z'
+            '''
+            result = await cl.query(query)
+            if len(result) > 0:
+                for index, row in result.iterrows():
+                    try:
+                        image = dict(image_template)
+                        image['table_name'] = table_name
+                        image['data_source_type'] = data_source_type
+                        image['image_name'] = row['imageName']
+                        image['creation_timestamp'] = row['timestampEndOfReadout']
+                        image['creation_time'] = timestamp_to_string(image['creation_timestamp'])
+                        image['nite'] = nite_from_timestamp(image['creation_timestamp'])
+                        self.image_data.append(image)
+                        # log.debug(f'{self.image_data[-1]}')
+                    except Exception as e:
+                        log.error(f'Error parsing row: {str(e)}')
+        elif data_source_type == 'arc':
+            query = f'''
+                SELECT 
+                    "obsid",
+                    "raft",
+                    "sensor",
+                    "private_rcvStamp"
+                FROM "efd"."autogen"."{table_name}"
+                WHERE time >= '{first_nite.isot}Z' AND time < '{last_nite.isot}Z' AND raft != '' AND sensor != ''
+            '''
+            result = await cl.query(query)
+            if len(result) > 0:
+                for index, row in result.iterrows():
+                    try:
+                        image = dict(image_template)
+                        image['table_name'] = table_name
+                        image['data_source_type'] = data_source_type
+                        image['image_name'] = row['obsid']
+                        image['creation_timestamp'] = row['private_rcvStamp']
+                        image['creation_time'] = timestamp_to_string(image['creation_timestamp'])
+                        image['nite'] = nite_from_timestamp(image['creation_timestamp'])
+                        zero_pad_sensor = '0' if len(row['sensor']) == 1 else ''
+                        zero_pad_raft = '0' if len(row['raft']) == 1 else ''
+                        image['filename'] = f'''{row['obsid']}-R{zero_pad_raft}{row['raft']}S{zero_pad_sensor}{row['sensor']}.fits'''
+                        self.image_data.append(image)
+                        # log.debug(f'{self.image_data[-1]}')
+                    except Exception as e:
+                        log.error(f'Error parsing row: {str(e)}')
+        else:
+            log.error(f"""Unsupported data source type "{data_source_type}". Exiting""")
+            sys.exit(1)
+        
         # Update IMAGE_DATA table
         conn = sqlite3.connect(self.db)
         c = conn.cursor()
-        for image in images:
+        for image in self.image_data:
             c.execute(f'''
                 DELETE FROM IMAGE_DATA WHERE
                     EfdHost = '{image['efd_host']}' AND
-                    CameraTable = '{self.data_source['efd']['tables']['camera']}' AND
-                    ArchiverTable = '{self.data_source['efd']['tables']['archiver']}' AND
+                    EfdTable = '{self.data_source['efd']['table']}' AND
                     ImageName = '{image['image_name']}' AND
                     ImageFileName = '{image['filename']}' AND
                     Creation_Time = '{image['creation_time']}' AND
@@ -338,21 +336,17 @@ class TransferIngestMonitor:
             c.execute(f'''
                 INSERT INTO IMAGE_DATA (
                     EfdHost,
-                    CameraTable,
-                    ArchiverTable,
+                    EfdTable,
                     ImageName,
                     ImageFileName,
                     Creation_Time,
-                    InArchiver,
                     Nite
                 ) VALUES(
                    '{image['efd_host']}',
-                   '{self.data_source['efd']['tables']['camera']}',
-                   '{self.data_source['efd']['tables']['archiver']}',
+                   '{image['table_name']}',
                    '{image['image_name']}',
                    '{image['filename']}',
                    '{image['creation_time']}',
-                    {image['in_archiver']},
                    '{image['nite']}'
                 )
             ''')
@@ -508,25 +502,47 @@ class TransferIngestMonitor:
             3: 0,
         }
         images_not_in_transfers = []
+        for gen in [2, 3]:
+            log.debug(self.nites[gen])
+            log.debug(self.paths[gen])
+            log.debug(self.filenames[gen])
         for image in self.image_data:
+            # log.debug(yaml.dump(image, indent=2))
+            log.debug(f'''{image['creation_time'], image['filename']}''')
+            data_source_type = image['data_source_type']
+            # Cross-match the image data from the EFD with the transfer database to provide the approximate image data creation time
             for gen in [2, 3]:
-                # Cross-match the consolidated db records with the EFD image data records
-                search = [idx for idx, filename in enumerate(self.filenames[gen]) if image['filename'] == filename ]
-                if search:
-                    query = f'''
-                        UPDATE IMAGE_DATA SET InTransfers = 1 WHERE ImageFileName = '{image['filename']}'
-                        '''
-                    c.execute(query)
-                    conn.commit()
-                    self.ctimes[gen][search[0]] = image['creation_time']
-                elif image['filename'] not in images_not_in_transfers:
-                    images_not_in_transfers.append(image['filename'])
-                    log.warning(f'''Image file not found in consolidated db: "{image['filename']}"''')
-                if len(search) > 1:
-                    log.warning(f'''(gen{gen}) More than one filename matches the image "{image['filename']}":\n{search}''')
+                if data_source_type == 'ccs':
+                    try:
+                        search = [idx for idx, path in enumerate(self.paths[gen]) if image['image_name'] == path.split('/')[1] ]
+                        log.debug(search)
+                        # Creation times are approximate. Each file listed by the transfer database matching
+                        for idx in search:
+                            self.ctimes[gen][idx] = image['creation_time']
+                    except Exception as e:
+                        log.error(f'''Error cross-matching CCS image names with transfer paths:\n"{yaml.dump(image, indent=2)}''')
+                elif data_source_type == 'arc':
+                    # Cross-match the consolidated db records with the EFD image data records
+                    search = [idx for idx, filename in enumerate(self.filenames[gen]) if image['filename'] == filename ]
+                    log.debug(search)
+                    if search:
+                        query = f'''
+                            UPDATE IMAGE_DATA SET InTransfers = 1 WHERE ImageFileName = '{image['filename']}'
+                            '''
+                        c.execute(query)
+                        conn.commit()
+                        self.ctimes[gen][search[0]] = image['creation_time']
+                    elif image['filename'] not in images_not_in_transfers:
+                        images_not_in_transfers.append(image['filename'])
+                        log.warning(f'''Image file not found in consolidated db: "{image['filename']}"''')
+                    if len(search) > 1:
+                        log.warning(f'''(gen{gen}) More than one filename matches the image "{image['filename']}":\n{search}''')
+                else:
+                    log.error(f"""Unsupported data source type "{data_source_type}". Exiting""")
+                    sys.exit(1)
+        # Insert or update the file information in the monitor db
         for gen in [2, 3]:
             for idx in range(len(self.filenames[gen])):
-                # Insert or update the file information in the monitor db
                 query = f'''
                     INSERT OR REPLACE INTO FILE_LIST_GEN{gen} (
                         Filenum, 
@@ -664,11 +680,10 @@ class TransferIngestMonitor:
                     ImageName,
                     ImageFileName,
                     Creation_Time,
-                    InArchiver,
                     InTransfers,
                     Nite
                 FROM IMAGE_DATA
-                WHERE Nite = "{self.nite}" AND (InArchiver = 0 OR InTransfers = 0)
+                WHERE Nite = "{self.nite}" AND InTransfers = 0
             '''
             )
             log.debug(f'\n*************************************\nMissing files:\n{missing_images}')

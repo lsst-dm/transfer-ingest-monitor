@@ -21,10 +21,15 @@
                 <code>N Not Fits</code>: number of uningested files that don't end in ".fits".<br>
                 <code>N Error</code>: number of uningested ".fits" files that are greater than 10K.<br>
                 <code>Last Ingest</code>: UTC of the most recently file ingest.<br><br>
+                <b>Note: Creation times are <i>approximate</i>, with better accuracy for Archiver sources and worse accuracy for CCS sources.</b>
             </p>
             {{ data }}
         </div>
     </div>
 </body>
 
+<script src="https://cdn.jsdelivr.net/npm/jquery/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/bootstrap-table@1.18.3/dist/bootstrap-table.min.js"></script>
 </html>

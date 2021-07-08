@@ -1,4 +1,4 @@
-<table class="table table-striped" data-toggle="table" data-pagination="true" data-search="true">
+<table class="table table-striped"{%- if table_sortable %} data-toggle="table" data-pagination="false" data-search="true"{%- endif %}>
     <thead>
         <tr style="border-top:3px solid black; border-bottom:3px solid black;">
             {% for header in headers -%}
