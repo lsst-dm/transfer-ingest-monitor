@@ -8,39 +8,59 @@
             <h1>Data source: <code>{{ name }}</code>, Gen <code>{%- if gen3 -%}3{%- else %}2{%- endif %}</code>, Night: <code>{{ nite }}</code></h1>
             <hr>
             <p>Page updated: <code>{{ nowstr }}</code></p>
-            <p class="breadcrumbs">Nav: <a href="..">Summary page</a> &lt; <a href={%- if gen3 -%}"."{%- else %}"./index_gen2.html"{%- endif %}>{{ name }}</a> &lt; {{ nite }}</p>
-            <!-- <h2>Description</h2> -->
-            <p>
-                <code>Transfer Path</code>: path of the transferred file at NCSA with root <code>{{ storage }}</code>.<br>
-                <code>Status</code>: result of the most recent ingestion attempt.<br>
-                <code>File Size</code>: measured in bytes.<br>
-                <code>Creation Time</code>: UTC the file was created (approximate).<br>
-                <code>Discovery Time</code>: UTC the file was discovered for tracking.<br>
-                <code>Ingest Time</code>: UTC of the file ingestion at NCSA.<br>
-                <code>Delta Time 1</code>: time (in seconds) between Creation and Transfer to NCSA (creation and transfer times are approximate).<br>
-                <code>Delta Time 2</code>: time (in seconds) between Transfer and Ingestion to NCSA (ingestion and transfer times are approximate).<br>
-                <code>Err Message</code>: Error Message from a failed ingestion attempt (if the most recent attempt failed).<br>
-                <b>Note: Creation times are <i>approximate</i>, with better accuracy for Archiver sources and worse accuracy for CCS sources.</b>
-                <br>
-            </p>
-            <p>
+            <p id="nav" class="breadcrumbs">Nav: <a href="..">Summary page</a> &lt; <a href={%- if gen3 -%}"."{%- else %}"./index_gen2.html"{%- endif %}>{{ name }}</a> &lt; {{ nite }}</p>
+            <ul style="margin-left: 2rem; list-style-type: none; margin: 0; padding: 1rem; line-height: 2rem;">
                 {%- if missing_images -%}
-                <a href="#missingimages">Missing images were discovered. Click here to view the list.</a>
+                <li><a href="#imagetable"><span style="font-size: 1.4rem;"><i class="fas fa-angle-double-down"></i>&nbsp;<span style="font-size: 1.5rem;">Image table</span></a></li>
                 {%- endif %}
-            </p>
-            {{ data }}
+                <li><a href="#transfers"><span style="font-size: 1.4rem;"><i class="fas fa-angle-double-down"></i>&nbsp;<span style="font-size: 1.5rem;">File transfer and ingest table</span></a></li>
+            </ul>
+            {%- if missing_images -%}
+            <div>
+                {%- if source_type == 'arc' -%}
+                <h2 id="imagetable"><a href="#nav"><span style="font-size: 1.5rem;"><i class="fas fa-angle-double-up"></i></a>&nbsp;Missing images</h2>
+                <p>
+                    The list of images below were recorded as acquired by the data source yet do not appear in the list of transferred files. It is unknown whether these images are missing because (1) they were never recorded as files or because (2) they were never added to the transfer queue.
+                </p>
+                {%- elif source_type == 'ccs' -%}
+                <h2 id="imagetable"><a href="#nav"><span style="font-size: 1.5rem;"><i class="fas fa-angle-double-up"></i></a>&nbsp;Acquired images</h2>
+                <p>
+                    The list of images below were recorded as acquired by the data source. <i>If these images are found to be missing</i> from the list of transferred files, it is unknown whether this is because (1) they were never recorded as files or because (2) they were never added to the transfer queue.
+                </p>
+                {%- endif %}
+                <div>
+                {{ missing_images }}
+                </div>
+            </div>
+            {%- endif %}
+            <div style="margin-top: 12rem;">
+                <!-- <h2>Description</h2> -->
+                <h2 id="transfers"><a href="#nav"><span style="font-size: 1.5rem;"><i class="fas fa-angle-double-up"></i></a>&nbsp;File transfer and ingest status</h2>
+                <p>
+                    <code>Transfer Path</code>: path of the transferred file at NCSA with root <code>{{ storage }}</code>.<br>
+                    <code>Status</code>: result of the most recent ingestion attempt.<br>
+                    <code>File Size</code>: measured in bytes.<br>
+                    <code>Creation Time</code>: UTC the file was created (approximate).<br>
+                    <code>Discovery Time</code>: UTC the file was discovered for tracking.<br>
+                    <code>Ingest Time</code>: UTC of the file ingestion at NCSA.<br>
+                    <code>Delta Time 1</code>: time (in seconds) between Creation and Transfer to NCSA (creation and transfer times are approximate).<br>
+                    <code>Delta Time 2</code>: time (in seconds) between Transfer and Ingestion to NCSA (ingestion and transfer times are approximate).<br>
+                    <code>Err Message</code>: Error Message from a failed ingestion attempt (if the most recent attempt failed).<br>
+                    <b>Note: Creation times are <i>approximate</i>, with better accuracy for Archiver sources and worse accuracy for CCS sources.</b>
+                    <br>
+                </p>
+                <p>
+                    {%- if missing_images -%}
+                        {%- if source_type == 'arc' -%}
+                        <a href="#imagetable">Missing images were discovered. Click here to view the list.</a>
+                        {%- elif source_type == 'ccs' -%}
+                        <a href="#imagetable">Click here to view image acquisitions reported by the CCS.</a>
+                        {%- endif %}
+                    {%- endif %}
+                </p>
+                {{ data }}
+            </div>
         </div>
-        {%- if missing_images -%}
-        <div style="margin-top: 5rem;">
-            <h2 id="missingimages">Missing images</h2>
-            <p>
-                The list of images below were recorded as acquired by the data source yet do not appear in the list of transferred files. It is unknown whether these images are missing because (1) they were never recorded as files or because (2) they were never added to the transfer queue.
-            </p>
-            <p>
-            {{ missing_images }}
-            </p>
-        </div>
-        {%- endif %}
     </div>
 </body>
 

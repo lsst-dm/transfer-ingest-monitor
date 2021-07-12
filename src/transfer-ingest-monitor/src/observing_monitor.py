@@ -734,6 +734,7 @@ class TransferIngestMonitor:
                     data=data,
                     gen3=gen == 3,
                     missing_images=missing_images,
+                    source_type=self.data_source['type'],
                 )
                 # log.debug(f'{html}')
             except Exception as e:

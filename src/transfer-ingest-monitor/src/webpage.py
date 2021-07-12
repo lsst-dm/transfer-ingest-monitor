@@ -48,8 +48,9 @@ def db_to_html(db, query, linkify=False, modifier='', prefix='', table_sortable=
             if len(row) > 1:
                 vals = [r for r in row[1:]]
                 row_linkify = linkify
-                if num_files_idx >= 0 and linkify and vals[num_files_idx-1] < 1:
-                    row_linkify = False
+                # Force link even when there are no transfers listed so viewers can see the acquired image table
+                # if num_files_idx >= 0 and linkify and vals[num_files_idx-1] < 1:
+                #     row_linkify = False
                 records.append({
                     'link_url': f'{prefix}{row[0]}{modifier}.html',
                     'link_text': f'{row[0]}',
