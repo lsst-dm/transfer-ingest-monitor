@@ -384,7 +384,7 @@ class TransferIngestMonitor:
         self.filesizes = {}
         self.err_messages = {}
         
-        for gen in [2, 3]:
+        for gen in [3, 2]:
             log.debug(f'''\n**********************************\nquery_consolidated_db: gen{gen}\n**********************************\n''')
             files_table = self.data_source['consolidated_db'][f'gen{gen}']['files_table']
             for file_events_table in self.data_source['consolidated_db'][f'gen{gen}']['file_events_tables']:
@@ -502,7 +502,7 @@ class TransferIngestMonitor:
             3: 0,
         }
         images_not_in_transfers = []
-        for gen in [2, 3]:
+        for gen in [3, 2]:
             log.debug(self.nites[gen])
             log.debug(self.paths[gen])
             log.debug(self.filenames[gen])
@@ -511,7 +511,7 @@ class TransferIngestMonitor:
             log.debug(f'''{image['creation_time'], image['filename']}''')
             data_source_type = image['data_source_type']
             # Cross-match the image data from the EFD with the transfer database to provide the approximate image data creation time
-            for gen in [2, 3]:
+            for gen in [3, 2]:
                 if data_source_type == 'ccs':
                     try:
                         search = [idx for idx, path in enumerate(self.paths[gen]) if image['image_name'] == path.split('/')[1] ]
@@ -541,7 +541,7 @@ class TransferIngestMonitor:
                     log.error(f"""Unsupported data source type "{data_source_type}". Exiting""")
                     sys.exit(1)
         # Insert or update the file information in the monitor db
-        for gen in [2, 3]:
+        for gen in [3, 2]:
             for idx in range(len(self.filenames[gen])):
                 query = f'''
                     INSERT OR REPLACE INTO FILE_LIST_GEN{gen} (
@@ -593,7 +593,7 @@ class TransferIngestMonitor:
         conn = sqlite3.connect(self.db)
         c = conn.cursor()
         sizemin = '10000'
-        for gen in [2, 3]:
+        for gen in [3, 2]:
             log.debug(f'''\n**********************************\ncompile_info_per_night: gen{gen}\n**********************************\n''')
             c.execute(f'''
                 SELECT 
@@ -652,7 +652,7 @@ class TransferIngestMonitor:
         conn.close()
 
     def update_nite_html(self):
-        for gen in [2, 3]:
+        for gen in [3, 2]:
             log.debug(f'''\n**********************************\nupdate_nite_html: gen{gen}\n**********************************\n''')
             if gen == 3:
                 outfilename = f'{self.output_dir}/{self.nite}.html'
@@ -746,7 +746,7 @@ class TransferIngestMonitor:
 
     def update_source_html(self):
             
-        for gen in [2, 3]:
+        for gen in [3, 2]:
             log.debug(f'''\n**********************************\nupdate_source_html: gen{gen}\n**********************************\n''')
             file_count_table = f'FILE_COUNT_GEN{gen}'
             if gen == 3:

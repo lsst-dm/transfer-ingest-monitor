@@ -11,9 +11,9 @@
             <p id="nav" class="breadcrumbs">Nav: <a href="..">Summary page</a> &lt; <a href={%- if gen3 -%}"."{%- else %}"./index_gen2.html"{%- endif %}>{{ name }}</a> &lt; {{ nite }}</p>
             <ul style="margin-left: 2rem; list-style-type: none; margin: 0; padding: 1rem; line-height: 2rem;">
                 {%- if missing_images -%}
-                <li><a href="#imagetable"><span style="font-size: 1.4rem;"><i class="fas fa-angle-double-down"></i>&nbsp;<span style="font-size: 1.5rem;">Image table</span></a></li>
+                <li><a href="#imagetable"><span style="font-size: 1.4rem;"><i class="fas fa-angle-double-down"></i>&nbsp;<span style="font-size: 1.5rem;">{%- if source_type == 'arc' -%}Missing images{%- elif source_type == 'ccs' -%}Acquired images{%- endif %}</span></a></li>
                 {%- endif %}
-                <li><a href="#transfers"><span style="font-size: 1.4rem;"><i class="fas fa-angle-double-down"></i>&nbsp;<span style="font-size: 1.5rem;">File transfer and ingest table</span></a></li>
+                <li><a href="#transfers"><span style="font-size: 1.4rem;"><i class="fas fa-angle-double-down"></i>&nbsp;<span style="font-size: 1.5rem;">File transfer and ingest status</span></a></li>
             </ul>
             {%- if missing_images -%}
             <div>
@@ -33,8 +33,7 @@
                 </div>
             </div>
             {%- endif %}
-            <div style="margin-top: 12rem;">
-                <!-- <h2>Description</h2> -->
+            <div {% if missing_images %}style="margin-top: 12rem;"{% endif %}>
                 <h2 id="transfers"><a href="#nav"><span style="font-size: 1.5rem;"><i class="fas fa-angle-double-up"></i></a>&nbsp;File transfer and ingest status</h2>
                 <p>
                     <code>Transfer Path</code>: path of the transferred file at NCSA with root <code>{{ storage }}</code>.<br>

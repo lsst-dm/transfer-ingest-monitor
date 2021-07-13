@@ -13,8 +13,32 @@
             <p>
                 Select an individual data source to view all data available for that source. 
             </p>
-            {% for stream in streams -%}
+            <h2 style="font-variant:all-small-caps">Gen 3</h2>
+            {% for stream in streams3 -%}
+            <table class="table-striped summary-table">
+                <thead>
+                    <tr style="border-top:3px solid black;">
+                        <th>
+                            <b><h2><a href="{{ stream.link }}">{{ stream.name }}</a></h2></b>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            {%- if stream.data_table|length > 0 %}
+                            {{ stream.data_table }}
+                            {%- else %}
+                            <p>No transfers within the past {{ num_days }} days.</p>
+                            {%- endif %}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
             
+            {%- endfor -%}
+            <h2 style="font-variant:all-small-caps">Gen 2</h2>
+            {% for stream in streams2 -%}
             <table class="table-striped summary-table">
                 <thead>
                     <tr style="border-top:3px solid black;">
