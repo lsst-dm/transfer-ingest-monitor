@@ -367,7 +367,7 @@ class TransferIngestMonitor:
         # For efficiency, query consolidated db for all files with names that include the dates in the current search range.
         daystr = (self.first_day).strftime('%Y%m%d')
         filename_condition = f"""filename LIKE '%%{daystr}%%.fits'"""
-        for day in range(1,self.num_days):
+        for day in range(1,self.num_days+1):
             daystr = (self.first_day+timedelta(days=day)).strftime('%Y%m%d')
             filename_condition += f""" OR 
                         filename LIKE '%%{daystr}%%.fits'"""
