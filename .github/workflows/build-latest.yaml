@@ -3,7 +3,7 @@ name: build-latest
 on:
   push:
     branches:
-      - 'master'
+      - 'main'
     paths:
     - '.github/workflows/build-latest.yaml'
     - 'src/transfer-ingest-monitor/Dockerfile'
@@ -48,7 +48,7 @@ jobs:
           context: ./src/transfer-ingest-monitor
           push: true
           tags: lsstdm/transfer-ingest-monitor:latest
-          # From https://github.com/docker/build-push-action/blob/master/docs/advanced/cache.md#github-cache
+          # From https://github.com/docker/build-push-action/blob/main/docs/advanced/cache.md#github-cache
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
       -
