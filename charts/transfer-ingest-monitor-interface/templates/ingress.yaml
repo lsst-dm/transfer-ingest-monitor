@@ -11,5 +11,7 @@ spec:
       - path: {{ .Values.basePath }}
         pathType: Prefix
         backend:
-          serviceName: transfer-ingest-monitor-interface
-          servicePort: 80
+          service:
+            name: transfer-ingest-monitor-interface
+            port:
+              number: 80
